@@ -1,0 +1,42 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('isAdmin').val() === true)"
+      }
+    },
+    "matches": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true",
+      "$matchId": {
+        ".validate": "newData.hasChildren(['homeTeam', 'awayTeam', 'homeScore', 'awayScore', 'status'])",
+        "homeTeam": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "awayTeam": {
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "homeScore": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "awayScore": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() === 'upcoming' || newData.val() === 'live' || newData.val() === 'finished')"
+        },
+        "venue": {
+          ".validate": "newData.isString()"
+        },
+        "matchDate": {
+          ".validate": "newData.isNumber()"
+        },
+        "events": {
+          ".read": "auth != null",
+          ".write": "auth != null && root.child('users').child(auth.uid).child('isAdmin').val() === true"
+        }
+      }
+    }
+  }
+}
