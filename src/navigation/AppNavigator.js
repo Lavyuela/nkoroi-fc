@@ -1,5 +1,4 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useAuth } from '../context/AuthContext';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
@@ -30,31 +29,29 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
-        {!user ? (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
-            <Stack.Screen name="CreateMatch" component={CreateMatchScreen} />
-            <Stack.Screen name="TeamUpdates" component={TeamUpdatesScreen} />
-            <Stack.Screen name="TeamStats" component={TeamStatsScreen} />
-            <Stack.Screen name="CreateUpdate" component={CreateUpdateScreen} />
-            <Stack.Screen name="Account" component={AccountScreen} />
-            <Stack.Screen name="Settings" component={SettingsScreen} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      {!user ? (
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
+          <Stack.Screen name="CreateMatch" component={CreateMatchScreen} />
+          <Stack.Screen name="TeamUpdates" component={TeamUpdatesScreen} />
+          <Stack.Screen name="TeamStats" component={TeamStatsScreen} />
+          <Stack.Screen name="CreateUpdate" component={CreateUpdateScreen} />
+          <Stack.Screen name="Account" component={AccountScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+        </>
+      )}
+    </Stack.Navigator>
   );
 };
 
