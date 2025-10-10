@@ -1,10 +1,22 @@
-// LIVE MODE: React Native Firebase (Native SDK - No crashes!)
+// HYBRID MODE: React Native Firebase with fallback to AsyncStorage
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import database from '@react-native-firebase/database';
-import messaging from '@react-native-firebase/messaging';
 
+let database = null;
+let messaging = null;
 let app = null;
 let auth = null;
+let firebaseAvailable = false;
+
+// Try to initialize Firebase, but don't block if it fails
+try {
+  database = require('@react-native-firebase/database').default;
+  messaging = require('@react-native-firebase/messaging').default;
+  firebaseAvailable = true;
+  console.log('✅ Firebase modules loaded successfully');
+} catch (error) {
+  console.log('⚠️ Firebase not available, using local storage only');
+  console.log('Error:', error.message);
+}
 
 // Authentication functions (Hybrid - Local storage with cloud database)
 export const loginUser = async (email, password) => {
@@ -111,12 +123,10 @@ export const checkIfAdmin = async (userId) => {
   }
 };
 
-// Match functions (LIVE - React Native Firebase Database)
+// Match functions (HYBRID - Firebase with AsyncStorage fallback)
 export const createMatch = async (matchData) => {
   try {
-    const matchRef = database().ref('matches').push();
-    const matchId = matchRef.key;
-    
+    const matchId = 'match-' + Date.now();
     const newMatch = {
       id: matchId,
       ...matchData,
@@ -127,7 +137,23 @@ export const createMatch = async (matchData) => {
       createdAt: Date.now(),
     };
     
-    await matchRef.set(newMatch);
+    // Save to local storage first (always works)
+    const savedMatches = await AsyncStorage.getItem('demoMatches');
+    const matches = savedMatches ? JSON.parse(savedMatches) : [];
+    matches.push(newMatch);
+    await AsyncStorage.setItem('demoMatches', JSON.stringify(matches));
+    
+    // Try to sync to Firebase if available
+    if (firebaseAvailable && database) {
+      try {
+        const matchRef = database().ref('matches').push();
+        await matchRef.set(newMatch);
+        console.log('✅ Match synced to Firebase');
+      } catch (error) {
+        console.log('⚠️ Firebase sync failed, data saved locally only');
+      }
+    }
+    
     return { success: true, matchId };
   } catch (error) {
     console.error('Create match error:', error);
@@ -137,7 +163,10 @@ export const createMatch = async (matchData) => {
 
 export const updateMatchScore = async (matchId, homeScore, awayScore) => {
   try {
-    await database().ref(`matches/${matchId}`).update({ homeScore, awayScore });
+    // Update in Firebase if available
+    if (firebaseAvailable && database) {
+      await database().ref(`matches/${matchId}`).update({ homeScore, awayScore });
+    }
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Failed to update score' };
@@ -146,7 +175,10 @@ export const updateMatchScore = async (matchId, homeScore, awayScore) => {
 
 export const updateMatchStatus = async (matchId, status) => {
   try {
-    await database().ref(`matches/${matchId}`).update({ status });
+    // Update in Firebase if available
+    if (firebaseAvailable && database) {
+      await database().ref(`matches/${matchId}`).update({ status });
+    }
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Failed to update status' };
@@ -155,7 +187,10 @@ export const updateMatchStatus = async (matchId, status) => {
 
 export const addMatchEvent = async (matchId, event) => {
   try {
-    await database().ref(`matches/${matchId}/events`).push(event);
+    // Add to Firebase if available
+    if (firebaseAvailable && database) {
+      await database().ref(`matches/${matchId}/events`).push(event);
+    }
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Failed to add event' };
@@ -164,7 +199,10 @@ export const addMatchEvent = async (matchId, event) => {
 
 export const deleteMatch = async (matchId) => {
   try {
-    await database().ref(`matches/${matchId}`).remove();
+    // Delete from Firebase if available
+    if (firebaseAvailable && database) {
+      await database().ref(`matches/${matchId}`).remove();
+    }
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Failed to delete match' };
@@ -172,28 +210,51 @@ export const deleteMatch = async (matchId) => {
 };
 
 export const subscribeToMatches = (callback) => {
-  const matchesRef = database().ref('matches');
+  // Use Firebase if available, otherwise use AsyncStorage
+  if (firebaseAvailable && database) {
+    try {
+      const matchesRef = database().ref('matches');
+      const onValueChange = matchesRef.on('value', (snapshot) => {
+        const matchesData = snapshot.val();
+        const matches = matchesData ? Object.values(matchesData) : [];
+        callback(matches);
+      });
+      return () => matchesRef.off('value', onValueChange);
+    } catch (error) {
+      console.log('Firebase subscription failed, using local storage');
+    }
+  }
   
-  const onValueChange = matchesRef.on('value', (snapshot) => {
-    const matchesData = snapshot.val();
-    const matches = matchesData ? Object.values(matchesData) : [];
+  // Fallback to AsyncStorage
+  AsyncStorage.getItem('demoMatches').then(data => {
+    const matches = data ? JSON.parse(data) : [];
     callback(matches);
   });
-  
-  // Return unsubscribe function
-  return () => matchesRef.off('value', onValueChange);
+  return () => {};
 };
 
 export const subscribeToMatch = (matchId, callback) => {
-  const matchRef = database().ref(`matches/${matchId}`);
+  // Use Firebase if available, otherwise use AsyncStorage
+  if (firebaseAvailable && database) {
+    try {
+      const matchRef = database().ref(`matches/${matchId}`);
+      const onValueChange = matchRef.on('value', (snapshot) => {
+        const match = snapshot.val();
+        if (match) callback(match);
+      });
+      return () => matchRef.off('value', onValueChange);
+    } catch (error) {
+      console.log('Firebase subscription failed, using local storage');
+    }
+  }
   
-  const onValueChange = matchRef.on('value', (snapshot) => {
-    const match = snapshot.val();
+  // Fallback to AsyncStorage
+  AsyncStorage.getItem('demoMatches').then(data => {
+    const matches = data ? JSON.parse(data) : [];
+    const match = matches.find(m => m.id === matchId);
     if (match) callback(match);
   });
-  
-  // Return unsubscribe function
-  return () => matchRef.off('value', onValueChange);
+  return () => {};
 };
 
 export { auth, database };

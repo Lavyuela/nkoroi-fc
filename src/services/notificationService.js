@@ -1,9 +1,25 @@
 // Push Notification Service using React Native Firebase
-import messaging from '@react-native-firebase/messaging';
 import { Platform, PermissionsAndroid } from 'react-native';
+
+let messaging = null;
+let messagingAvailable = false;
+
+// Try to load messaging, but don't crash if it fails
+try {
+  messaging = require('@react-native-firebase/messaging').default;
+  messagingAvailable = true;
+  console.log('✅ Firebase Messaging loaded');
+} catch (error) {
+  console.log('⚠️ Firebase Messaging not available');
+}
 
 // Request notification permission
 export const requestNotificationPermission = async () => {
+  if (!messagingAvailable || !messaging) {
+    console.log('⚠️ Notifications not available');
+    return false;
+  }
+  
   try {
     if (Platform.OS === 'android') {
       if (Platform.Version >= 33) {
@@ -29,6 +45,11 @@ export const requestNotificationPermission = async () => {
 
 // Get FCM token
 export const getFCMToken = async () => {
+  if (!messagingAvailable || !messaging) {
+    console.log('⚠️ Cannot get FCM token - messaging not available');
+    return null;
+  }
+  
   try {
     const token = await messaging().getToken();
     console.log('FCM Token:', token);
@@ -41,32 +62,42 @@ export const getFCMToken = async () => {
 
 // Setup notification listeners
 export const setupNotificationListeners = () => {
-  // Foreground messages
-  const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
-    console.log('Foreground notification:', remoteMessage);
-    // You can show a local notification here if needed
-  });
-
-  // Background/Quit state messages
-  messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-    console.log('Background notification:', remoteMessage);
-  });
-
-  // Notification opened app
-  messaging().onNotificationOpenedApp((remoteMessage) => {
-    console.log('Notification opened app:', remoteMessage);
-  });
-
-  // Check if app was opened by notification
-  messaging()
-    .getInitialNotification()
-    .then((remoteMessage) => {
-      if (remoteMessage) {
-        console.log('App opened by notification:', remoteMessage);
-      }
+  if (!messagingAvailable || !messaging) {
+    console.log('⚠️ Cannot setup listeners - messaging not available');
+    return () => {};
+  }
+  
+  try {
+    // Foreground messages
+    const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
+      console.log('Foreground notification:', remoteMessage);
+      // You can show a local notification here if needed
     });
 
-  return unsubscribeForeground;
+    // Background/Quit state messages
+    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+      console.log('Background notification:', remoteMessage);
+    });
+
+    // Notification opened app
+    messaging().onNotificationOpenedApp((remoteMessage) => {
+      console.log('Notification opened app:', remoteMessage);
+    });
+
+    // Check if app was opened by notification
+    messaging()
+      .getInitialNotification()
+      .then((remoteMessage) => {
+        if (remoteMessage) {
+          console.log('App opened by notification:', remoteMessage);
+        }
+      });
+
+    return unsubscribeForeground;
+  } catch (error) {
+    console.error('Setup listeners error:', error);
+    return () => {};
+  }
 };
 
 // Send notification for match events
