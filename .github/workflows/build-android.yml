@@ -37,13 +37,16 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
       
+      - name: Create local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+      
       - name: Make gradlew executable
         run: chmod +x android/gradlew
       
       - name: Build APK
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
