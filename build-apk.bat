@@ -1,19 +1,20 @@
 @echo off
-cd /d "c:\Users\Admin\Downloads\Nkoroi FC"
+cd /d "c:\Users\Admin\Downloads\Nkoroi FC\android"
 echo ========================================
-echo Building Nkoroi FC APK
+echo Building Nkoroi FC APK (Local Build)
 echo ========================================
 echo.
-echo Step 1: Login to EAS
-npx eas login
+echo This will take 5-10 minutes...
 echo.
-echo Step 2: Configure EAS Build
-npx eas build:configure
-echo.
-echo Step 3: Build APK
-npx eas build --platform android --profile preview
+call gradlew.bat assembleRelease
 echo.
 echo ========================================
-echo Build complete! Download link will appear above.
+echo Build Complete!
+echo ========================================
+echo.
+echo APK Location:
+echo android\app\build\outputs\apk\release\app-release.apk
+echo.
+echo You can now share this APK file!
 echo ========================================
 pause

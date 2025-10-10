@@ -1,7 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { auth, checkIfAdmin } from '../services/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 
 const AuthContext = createContext();
 
@@ -19,27 +17,56 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        const adminStatus = await checkIfAdmin(firebaseUser.uid);
-        setIsAdmin(adminStatus);
-        await AsyncStorage.setItem('userId', firebaseUser.uid);
-      } else {
-        setUser(null);
-        setIsAdmin(false);
-        await AsyncStorage.removeItem('userId');
-      }
-      setLoading(false);
-    });
-
-    return unsubscribe;
+    // Load saved user session on app start
+    loadUserSession();
   }, []);
+
+  const loadUserSession = async () => {
+    try {
+      const savedUser = await AsyncStorage.getItem('currentUser');
+      const savedIsAdmin = await AsyncStorage.getItem('isAdmin');
+      
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+        setIsAdmin(savedIsAdmin === 'true');
+      }
+    } catch (error) {
+      console.log('Error loading user session:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveUserSession = async (userData, adminStatus) => {
+    try {
+      await AsyncStorage.setItem('currentUser', JSON.stringify(userData));
+      await AsyncStorage.setItem('isAdmin', adminStatus.toString());
+      setUser(userData);
+      setIsAdmin(adminStatus);
+    } catch (error) {
+      console.log('Error saving user session:', error);
+    }
+  };
+
+  const clearUserSession = async () => {
+    try {
+      await AsyncStorage.removeItem('currentUser');
+      await AsyncStorage.removeItem('isAdmin');
+      setUser(null);
+      setIsAdmin(false);
+    } catch (error) {
+      console.log('Error clearing user session:', error);
+    }
+  };
 
   const value = {
     user,
     isAdmin,
     loading,
+    setUser,
+    setIsAdmin,
+    saveUserSession,
+    clearUserSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -17,4 +17,9 @@ web-build/
 .DS_Store
 
 # Firebase config (keep template, ignore actual)
-firebaseConfig.js
+# firebaseConfig.js
+
+# Android build files
+android/build/
+android/app/build/
+android/.gradle/

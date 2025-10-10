@@ -1,0 +1,15 @@
+node_modules/
+.expo/
+.expo-shared/
+android/build/
+android/app/build/
+android/.gradle/
+android/.cxx/
+.git/
+*.log
+npm-debug.*
+.DS_Store
+*.apk
+*.aab
+build/
+dist/

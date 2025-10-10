@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { TextInput, Button, Text, Appbar, Snackbar } from 'react-native-paper';
-import { createMatch } from '../services/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const CreateMatchScreen = ({ navigation }) => {
@@ -9,7 +9,10 @@ const CreateMatchScreen = ({ navigation }) => {
   const [awayTeam, setAwayTeam] = useState('');
   const [venue, setVenue] = useState('');
   const [matchDate, setMatchDate] = useState(new Date());
+  const [matchTime, setMatchTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState('date');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -21,29 +24,73 @@ const CreateMatchScreen = ({ navigation }) => {
     }
 
     setLoading(true);
-    const result = await createMatch({
-      homeTeam,
-      awayTeam,
-      venue,
-      matchDate: matchDate.getTime(),
-    });
-    setLoading(false);
-
-    if (result.success) {
-      setSuccess('Match created successfully!');
-      setTimeout(() => {
-        navigation.goBack();
-      }, 1500);
-    } else {
-      setError(result.error);
+    
+    try {
+      // DEMO MODE: Save to AsyncStorage
+      const matchId = 'match-' + Date.now();
+      const newMatch = {
+        id: matchId,
+        homeTeam,
+        awayTeam,
+        venue,
+        matchDate: matchDate.getTime(),
+        homeScore: 0,
+        awayScore: 0,
+        status: 'upcoming',
+        events: [],
+        createdAt: Date.now(),
+      };
+      
+      const savedMatches = await AsyncStorage.getItem('demoMatches');
+      const matches = savedMatches ? JSON.parse(savedMatches) : [];
+      matches.push(newMatch);
+      
+      // Save and navigate back immediately
+      AsyncStorage.setItem('demoMatches', JSON.stringify(matches));
+      navigation.goBack();
+    } catch (error) {
+      setError('Failed to create match');
+    } finally {
+      setLoading(false);
     }
   };
 
   const onDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setMatchDate(selectedDate);
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      setShowTimePicker(false);
     }
+    
+    if (selectedDate) {
+      if (pickerMode === 'date') {
+        setMatchDate(selectedDate);
+        if (Platform.OS === 'android') {
+          // After selecting date, show time picker
+          setTimeout(() => {
+            setPickerMode('time');
+            setShowTimePicker(true);
+          }, 100);
+        }
+      } else {
+        setMatchTime(selectedDate);
+        // Combine date and time
+        const combined = new Date(matchDate);
+        combined.setHours(selectedDate.getHours());
+        combined.setMinutes(selectedDate.getMinutes());
+        setMatchDate(combined);
+        setMatchTime(combined);
+      }
+    }
+    
+    if (Platform.OS === 'ios') {
+      setShowDatePicker(false);
+      setShowTimePicker(false);
+    }
+  };
+
+  const showDateTimePicker = () => {
+    setPickerMode('date');
+    setShowDatePicker(true);
   };
 
   return (
@@ -89,23 +136,54 @@ const CreateMatchScreen = ({ navigation }) => {
             left={<TextInput.Icon icon="map-marker" />}
           />
 
-          <Button
-            mode="outlined"
-            onPress={() => setShowDatePicker(true)}
-            style={styles.dateButton}
-            icon="calendar"
-          >
-            {matchDate.toLocaleDateString()} {matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Button>
+          <Text style={styles.dateLabel}>📅 Match Date & Time</Text>
+          
+          <View style={styles.dateTimeContainer}>
+            <Button
+              mode="outlined"
+              onPress={showDateTimePicker}
+              style={styles.dateButton}
+              icon="calendar"
+            >
+              📅 {matchDate.toLocaleDateString()}
+            </Button>
+            
+            <Button
+              mode="outlined"
+              onPress={() => {
+                setPickerMode('time');
+                setShowTimePicker(true);
+              }}
+              style={styles.timeButton}
+              icon="clock"
+            >
+              🕒 {matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Button>
+          </View>
 
           {showDatePicker && (
             <DateTimePicker
               value={matchDate}
-              mode="datetime"
+              mode="date"
+              display="default"
+              onChange={onDateChange}
+              minimumDate={new Date(2020, 0, 1)}
+              maximumDate={new Date(2030, 11, 31)}
+            />
+          )}
+
+          {showTimePicker && (
+            <DateTimePicker
+              value={matchTime}
+              mode="time"
               display="default"
               onChange={onDateChange}
             />
           )}
+
+          <Text style={styles.selectedDateTime}>
+            Selected: {matchDate.toLocaleDateString()} at {matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Text>
 
           <Button
             mode="contained"
@@ -147,7 +225,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   header: {
-    backgroundColor: '#1a472a',
+    backgroundColor: '#4FC3F7',
   },
   headerTitle: {
     color: '#fff',
@@ -167,15 +245,38 @@ const styles = StyleSheet.create({
     color: '#1a472a',
   },
   input: {
+  },
+  dateLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#0277BD',
+    marginBottom: 15,
+  },
+  dateTimeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 15,
   },
   dateButton: {
+    flex: 1,
+    marginRight: 5,
+    borderColor: '#4FC3F7',
+  },
+  timeButton: {
+    flex: 1,
+    marginLeft: 5,
+    borderColor: '#4FC3F7',
+  },
+  selectedDateTime: {
+    fontSize: 14,
+    color: '#4caf50',
+    textAlign: 'center',
     marginBottom: 15,
-    borderColor: '#1a472a',
+    fontWeight: 'bold',
   },
   createButton: {
     marginTop: 20,
-    backgroundColor: '#1a472a',
+    backgroundColor: '#4FC3F7',
   },
   buttonContent: {
     paddingVertical: 8,

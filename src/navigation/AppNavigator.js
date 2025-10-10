@@ -10,6 +10,11 @@ import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import MatchDetailScreen from '../screens/MatchDetailScreen';
 import CreateMatchScreen from '../screens/CreateMatchScreen';
+import TeamUpdatesScreen from '../screens/TeamUpdatesScreen';
+import TeamStatsScreen from '../screens/TeamStatsScreen';
+import CreateUpdateScreen from '../screens/CreateUpdateScreen';
+import AccountScreen from '../screens/AccountScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 const Stack = createStackNavigator();
 
@@ -41,6 +46,11 @@ const AppNavigator = () => {
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="MatchDetail" component={MatchDetailScreen} />
             <Stack.Screen name="CreateMatch" component={CreateMatchScreen} />
+            <Stack.Screen name="TeamUpdates" component={TeamUpdatesScreen} />
+            <Stack.Screen name="TeamStats" component={TeamStatsScreen} />
+            <Stack.Screen name="CreateUpdate" component={CreateUpdateScreen} />
+            <Stack.Screen name="Account" component={AccountScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
           </>
         )}
       </Stack.Navigator>

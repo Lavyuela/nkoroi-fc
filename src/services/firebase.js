@@ -1,152 +1,162 @@
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, onValue, push, update, remove } from 'firebase/database';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { firebaseConfig } from '../../firebaseConfig';
+// DEMO MODE: Mock Firebase for testing
+// Firebase disabled to avoid initialization errors in Expo Go
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-const auth = getAuth(app);
+let app = null;
+let database = null;
+let auth = null;
 
-// Authentication functions
+// Authentication functions (DEMO MODE - Mock with validation)
 export const loginUser = async (email, password) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return { success: true, user: userCredential.user };
+    // Get registered users from storage
+    const usersData = await AsyncStorage.getItem('registeredUsers');
+    const users = usersData ? JSON.parse(usersData) : {};
+    
+    // Check if user exists
+    if (!users[email]) {
+      return { 
+        success: false, 
+        error: 'No account found with this email address' 
+      };
+    }
+    
+    // Check password
+    if (users[email].password !== password) {
+      return { 
+        success: false, 
+        error: 'Incorrect password. Please try again.' 
+      };
+    }
+    
+    // Login successful
+    return { 
+      success: true, 
+      user: { 
+        uid: users[email].uid, 
+        email: email 
+      } 
+    };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: 'Login failed. Please try again.' 
+    };
   }
 };
 
 export const registerUser = async (email, password, isAdmin = false) => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const userId = userCredential.user.uid;
+    // Get existing users
+    const usersData = await AsyncStorage.getItem('registeredUsers');
+    const users = usersData ? JSON.parse(usersData) : {};
     
-    // Store user role in database
-    await set(ref(database, `users/${userId}`), {
+    // Check if user already exists
+    if (users[email]) {
+      return { 
+        success: false, 
+        error: 'An account with this email already exists' 
+      };
+    }
+    
+    // Create new user
+    const userId = 'demo-' + Date.now();
+    users[email] = {
+      uid: userId,
       email: email,
-      isAdmin: isAdmin,
+      password: password, // In production, this would be hashed!
       createdAt: Date.now()
-    });
+    };
     
-    return { success: true, user: userCredential.user };
+    // Save users
+    await AsyncStorage.setItem('registeredUsers', JSON.stringify(users));
+    
+    // Save admin status
+    const adminUsers = await AsyncStorage.getItem('adminUsers');
+    const admins = adminUsers ? JSON.parse(adminUsers) : [];
+    if (isAdmin && !admins.includes(email)) {
+      admins.push(email);
+      await AsyncStorage.setItem('adminUsers', JSON.stringify(admins));
+    }
+    
+    return { 
+      success: true, 
+      user: { uid: userId, email: email } 
+    };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { 
+      success: false, 
+      error: 'Registration failed. Please try again.' 
+    };
   }
 };
 
 export const logoutUser = async () => {
-  try {
-    await signOut(auth);
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+  return { success: true };
 };
 
 export const getCurrentUser = () => {
-  return auth.currentUser;
+  return null;
 };
 
 export const checkIfAdmin = async (userId) => {
-  return new Promise((resolve) => {
-    const userRef = ref(database, `users/${userId}`);
-    onValue(userRef, (snapshot) => {
-      const userData = snapshot.val();
-      resolve(userData?.isAdmin || false);
-    }, { onlyOnce: true });
-  });
+  return false;
 };
 
-// Match functions
+// Match functions (DEMO MODE - AsyncStorage)
 export const createMatch = async (matchData) => {
-  try {
-    const matchRef = push(ref(database, 'matches'));
-    await set(matchRef, {
-      ...matchData,
-      homeScore: 0,
-      awayScore: 0,
-      status: 'upcoming', // upcoming, live, finished
-      events: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    });
-    return { success: true, matchId: matchRef.key };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+  const matchId = 'match-' + Date.now();
+  const newMatch = {
+    id: matchId,
+    ...matchData,
+    homeScore: 0,
+    awayScore: 0,
+    status: 'upcoming',
+    events: [],
+    createdAt: Date.now(),
+  };
+  
+  const savedMatches = await AsyncStorage.getItem('demoMatches');
+  const matches = savedMatches ? JSON.parse(savedMatches) : [];
+  matches.push(newMatch);
+  await AsyncStorage.setItem('demoMatches', JSON.stringify(matches));
+  
+  return { success: true, matchId };
 };
 
 export const updateMatchScore = async (matchId, homeScore, awayScore) => {
-  try {
-    await update(ref(database, `matches/${matchId}`), {
-      homeScore,
-      awayScore,
-      updatedAt: Date.now()
-    });
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+  return { success: true };
 };
 
 export const updateMatchStatus = async (matchId, status) => {
-  try {
-    await update(ref(database, `matches/${matchId}`), {
-      status,
-      updatedAt: Date.now()
-    });
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+  return { success: true };
 };
 
 export const addMatchEvent = async (matchId, event) => {
-  try {
-    const eventRef = push(ref(database, `matches/${matchId}/events`));
-    await set(eventRef, {
-      ...event,
-      timestamp: Date.now()
-    });
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+  return { success: true };
 };
 
 export const deleteMatch = async (matchId) => {
-  try {
-    await remove(ref(database, `matches/${matchId}`));
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+  return { success: true };
 };
 
 export const subscribeToMatches = (callback) => {
-  const matchesRef = ref(database, 'matches');
-  return onValue(matchesRef, (snapshot) => {
-    const matches = [];
-    snapshot.forEach((childSnapshot) => {
-      matches.push({
-        id: childSnapshot.key,
-        ...childSnapshot.val()
-      });
-    });
+  // Load from AsyncStorage and call callback
+  AsyncStorage.getItem('demoMatches').then(data => {
+    const matches = data ? JSON.parse(data) : [];
     callback(matches);
   });
+  return () => {}; // unsubscribe function
 };
 
 export const subscribeToMatch = (matchId, callback) => {
-  const matchRef = ref(database, `matches/${matchId}`);
-  return onValue(matchRef, (snapshot) => {
-    callback({
-      id: snapshot.key,
-      ...snapshot.val()
-    });
+  // Load from AsyncStorage and call callback
+  AsyncStorage.getItem('demoMatches').then(data => {
+    const matches = data ? JSON.parse(data) : [];
+    const match = matches.find(m => m.id === matchId);
+    if (match) callback(match);
   });
+  return () => {}; // unsubscribe function
 };
 
 export { auth, database };

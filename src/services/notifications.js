@@ -24,39 +24,53 @@ export const registerForPushNotifications = async () => {
     });
   }
 
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    
-    if (finalStatus !== 'granted') {
-      alert('Failed to get push token for push notification!');
-      return;
-    }
-    
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-    await AsyncStorage.setItem('pushToken', token);
-  } else {
-    alert('Must use physical device for Push Notifications');
+  // Request permissions (works in Expo Go for local notifications)
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
   }
+  
+  if (finalStatus !== 'granted') {
+    console.log('Notification permissions not granted');
+    return;
+  }
+
+  console.log('Notification permissions granted!');
+  
+  // Note: Push tokens don't work in Expo Go, but local notifications do!
+  // Only try to get push token in standalone builds
+  // if (Device.isDevice) {
+  //   try {
+  //     token = (await Notifications.getExpoPushTokenAsync()).data;
+  //     await AsyncStorage.setItem('pushToken', token);
+  //     console.log('Push token:', token);
+  //   } catch (error) {
+  //     console.log('Error getting push token:', error);
+  //   }
+  // }
 
   return token;
 };
 
 export const sendLocalNotification = async (title, body, data = {}) => {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title,
-      body,
-      data,
-      sound: true,
-    },
-    trigger: null, // Send immediately
-  });
+  try {
+    console.log('Sending notification:', title, body);
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data,
+        sound: true,
+      },
+      trigger: null, // Send immediately
+    });
+    console.log('Notification sent successfully!');
+  } catch (error) {
+    console.log('Error sending notification:', error);
+  }
 };
 
 export const scheduleGoalNotification = async (team, playerName, score) => {

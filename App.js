@@ -1,39 +1,37 @@
 import React, { useEffect } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { Provider as PaperProvider } from 'react-native-paper';
-import { AuthProvider } from './src/context/AuthContext';
-import AppNavigator from './src/navigation/AppNavigator';
-import { registerForPushNotifications, addNotificationListener, addNotificationResponseListener } from './src/services/notifications';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { View, Text, Alert } from 'react-native';
+import messaging from '@react-native-firebase/messaging';
 
 export default function App() {
   useEffect(() => {
-    // Register for push notifications
-    registerForPushNotifications();
+    // Request permission for notifications (Android/iOS)
+    async function requestPermission() {
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
-    // Add notification listeners
-    const notificationListener = addNotificationListener((notification) => {
-      console.log('Notification received:', notification);
-    });
+      if (enabled) {
+        console.log('Authorization status:', authStatus);
+        getToken();
+      } else {
+        console.log('Push notification permission denied');
+      }
+    }
 
-    const responseListener = addNotificationResponseListener((response) => {
-      console.log('Notification response:', response);
-    });
+    // Get FCM token
+    async function getToken() {
+      const token = await messaging().getToken();
+      console.log('FCM Token:', token);   // ✅ Copy this token
+      Alert.alert('FCM Token', token);   // Optional: shows token on phone
+    }
 
-    return () => {
-      notificationListener.remove();
-      responseListener.remove();
-    };
+    requestPermission();
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider>
-        <AuthProvider>
-          <StatusBar style="light" />
-          <AppNavigator />
-        </AuthProvider>
-      </PaperProvider>
-    </GestureHandlerRootView>
+    <View>
+      <Text>Nkoroi FC Live Score App</Text>
+    </View>
   );
 }

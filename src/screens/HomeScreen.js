@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
-import { Text, Card, FAB, Chip, Appbar, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Animated } from 'react-native';
+import { Text, Card, FAB, Chip, Appbar, ActivityIndicator, Button } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
-import { subscribeToMatches } from '../services/firebase';
-import { logoutUser } from '../services/firebase';
+import { subscribeToMatches, logoutUser } from '../services/firebase';
 
 const HomeScreen = ({ navigation }) => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, clearUserSession } = useAuth();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
+    // Subscribe to real-time Firebase matches
     const unsubscribe = subscribeToMatches((matchesData) => {
-      // Sort matches: live first, then upcoming, then finished
       const sorted = matchesData.sort((a, b) => {
         const statusOrder = { live: 0, upcoming: 1, finished: 2 };
         return statusOrder[a.status] - statusOrder[b.status];
@@ -28,22 +27,38 @@ const HomeScreen = ({ navigation }) => {
 
   const onRefresh = () => {
     setRefreshing(true);
+    // Firebase subscription will auto-update
   };
 
   const handleLogout = async () => {
+    await clearUserSession();
     await logoutUser();
   };
+
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'live':
         return '#4caf50';
       case 'upcoming':
-        return '#2196f3';
+        return '#4FC3F7';
       case 'finished':
-        return '#757575';
+        return '#9E9E9E';
       default:
-        return '#757575';
+        return '#9E9E9E';
+    }
+  };
+
+  const getStatusGradient = (status) => {
+    switch (status) {
+      case 'live':
+        return ['#4caf50', '#66bb6a'];
+      case 'upcoming':
+        return ['#4FC3F7', '#29B6F6'];
+      case 'finished':
+        return ['#9E9E9E', '#BDBDBD'];
+      default:
+        return ['#9E9E9E', '#BDBDBD'];
     }
   };
 
@@ -101,6 +116,14 @@ const HomeScreen = ({ navigation }) => {
           {item.venue && (
             <Text style={styles.venue}>📍 {item.venue}</Text>
           )}
+          
+          {!isAdmin && item.status === 'upcoming' && (
+            <Text style={styles.tapHint}>👆 Tap to make your prediction!</Text>
+          )}
+          
+          {!isAdmin && item.status === 'live' && (
+            <Text style={styles.tapHint}>👆 Tap to follow live updates!</Text>
+          )}
         </Card.Content>
       </Card>
     </TouchableOpacity>
@@ -118,14 +141,66 @@ const HomeScreen = ({ navigation }) => {
     <View style={styles.container}>
       <Appbar.Header style={styles.header}>
         <Appbar.Content title="Nkoroi FC Live Score" titleStyle={styles.headerTitle} />
-        <Appbar.Action icon="logout" onPress={handleLogout} color="#fff" />
+        <Appbar.Action icon="chart-bar" onPress={() => navigation.navigate('TeamStats')} color="#fff" />
+        <Appbar.Action icon="newspaper" onPress={() => navigation.navigate('TeamUpdates')} color="#fff" />
+        <Appbar.Action icon="account-circle" onPress={() => navigation.navigate('Account')} color="#fff" />
       </Appbar.Header>
 
       {isAdmin && (
         <View style={styles.adminBadge}>
           <Text style={styles.adminText}>👑 Admin Mode</Text>
+          <View style={styles.adminQuickActions}>
+            <Button
+              mode="outlined"
+              onPress={() => navigation.navigate('CreateMatch')}
+              icon="plus"
+              style={styles.quickActionButton}
+              compact
+            >
+              Match
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={() => navigation.navigate('CreateUpdate')}
+              icon="newspaper"
+              style={styles.quickActionButton}
+              compact
+            >
+              Update
+            </Button>
+          </View>
         </View>
       )}
+
+      {!isAdmin && (
+        <Card style={styles.welcomeCard}>
+          <Card.Content>
+            <Text style={styles.welcomeTitle}>⚽ Welcome, Fan!</Text>
+            <Text style={styles.welcomeText}>Explore team features:</Text>
+            <View style={styles.featureRow}>
+              <Button
+                mode="outlined"
+                onPress={() => navigation.navigate('TeamStats')}
+                icon="chart-bar"
+                style={styles.featureButton}
+                compact
+              >
+                📊 Stats
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={() => navigation.navigate('TeamUpdates')}
+                icon="newspaper"
+                style={styles.featureButton}
+                compact
+              >
+                📰 News
+              </Button>
+            </View>
+          </Card.Content>
+        </Card>
+      )}
+
 
       <FlatList
         data={matches}
@@ -161,24 +236,63 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F0F4F8',
   },
   header: {
-    backgroundColor: '#1a472a',
+    backgroundColor: '#4FC3F7',
+    elevation: 4,
   },
   headerTitle: {
     color: '#fff',
     fontWeight: 'bold',
   },
   adminBadge: {
-    backgroundColor: '#ffd700',
-    padding: 10,
+    backgroundColor: '#E3F2FD',
+    padding: 15,
     alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: '#4FC3F7',
   },
   adminText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#0277BD',
+    marginBottom: 10,
+  },
+  adminQuickActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 5,
+  },
+  quickActionButton: {
+    marginHorizontal: 5,
+    borderColor: '#4FC3F7',
+  },
+  welcomeCard: {
+    margin: 15,
+    marginBottom: 0,
+    backgroundColor: '#B3E5FC',
+    elevation: 3,
+  },
+  welcomeTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#0288D1',
+    marginBottom: 5,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  featureButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    borderColor: '#0288D1',
   },
   loadingContainer: {
     flex: 1,
@@ -190,7 +304,13 @@ const styles = StyleSheet.create({
   },
   matchCard: {
     marginBottom: 15,
-    elevation: 3,
+    elevation: 4,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   statusContainer: {
     flexDirection: 'row',
@@ -199,7 +319,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   statusChip: {
-    height: 28,
+    height: 30,
+    borderRadius: 15,
   },
   statusText: {
     color: '#fff',
@@ -221,15 +342,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   teamName: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 5,
+    marginBottom: 8,
+    color: '#1E293B',
   },
   score: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1a472a',
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#0277BD',
   },
   vs: {
     fontSize: 14,
@@ -242,6 +364,14 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 10,
     textAlign: 'center',
+  },
+  tapHint: {
+    fontSize: 12,
+    color: '#0288D1',
+    marginTop: 10,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontStyle: 'italic',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -265,7 +395,8 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#1a472a',
+    backgroundColor: '#4FC3F7',
+    elevation: 6,
   },
 });
 

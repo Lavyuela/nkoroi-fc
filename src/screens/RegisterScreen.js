@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { TextInput, Button, Text, Card, Snackbar, Switch } from 'react-native-paper';
 import { registerUser } from '../services/firebase';
+import { useAuth } from '../context/AuthContext';
 
 const RegisterScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -11,6 +12,7 @@ const RegisterScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const { saveUserSession } = useAuth();
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword) {
@@ -33,7 +35,8 @@ const RegisterScreen = ({ navigation }) => {
     setLoading(false);
 
     if (result.success) {
-      navigation.replace('Login');
+      // Auto-login after registration
+      await saveUserSession(result.user, isAdmin);
     } else {
       setError(result.error);
     }
@@ -95,7 +98,7 @@ const RegisterScreen = ({ navigation }) => {
               <Switch
                 value={isAdmin}
                 onValueChange={setIsAdmin}
-                color="#1a472a"
+                color="#0277BD"
               />
             </View>
 
@@ -136,7 +139,7 @@ const RegisterScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a472a',
+    backgroundColor: '#4FC3F7',
   },
   scrollContent: {
     flexGrow: 1,
@@ -178,7 +181,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 10,
-    backgroundColor: '#1a472a',
+    backgroundColor: '#0277BD',
   },
   buttonContent: {
     paddingVertical: 8,

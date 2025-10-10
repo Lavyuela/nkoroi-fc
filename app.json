@@ -2,21 +2,32 @@
   "expo": {
     "name": "Nkoroi FC Live Score",
     "slug": "nkoroi-fc-live-score",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
+    "icon": "./assets/nkoroifclogo.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "backgroundColor": "#1a472a"
+      "image": "./assets/nkoroifclogo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4FC3F7"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nkoroifc.livescore"
     },
     "android": {
       "package": "com.nkoroifc.livescore",
+      "versionCode": 4,
       "permissions": [
         "NOTIFICATIONS"
-      ]
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#4FC3F7"
+      },
+      "buildToolsVersion": "34.0.0"
     },
     "plugins": [
       "expo-notifications"
