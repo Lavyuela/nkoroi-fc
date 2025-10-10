@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "690706398047",
+    "firebase_url": "https://nkoroifc-9c964-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "nkoroifc-9c964",
+    "storage_bucket": "nkoroifc-9c964.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:690706398047:android:b990946497752a369dd94e",
+        "android_client_info": {
+          "package_name": "com.nkoroifc.livescore"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDDkwPxdA1CwqCdXmAQz79PrN6PSCDUWuc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
