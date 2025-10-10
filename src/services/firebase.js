@@ -1,4 +1,4 @@
-// HYBRID MODE: React Native Firebase with fallback to AsyncStorage
+// STABLE MODE: Pure AsyncStorage - No Firebase dependencies
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 let database = null;
@@ -7,16 +7,7 @@ let app = null;
 let auth = null;
 let firebaseAvailable = false;
 
-// Try to initialize Firebase, but don't block if it fails
-try {
-  database = require('@react-native-firebase/database').default;
-  messaging = require('@react-native-firebase/messaging').default;
-  firebaseAvailable = true;
-  console.log('✅ Firebase modules loaded successfully');
-} catch (error) {
-  console.log('⚠️ Firebase not available, using local storage only');
-  console.log('Error:', error.message);
-}
+console.log('✅ Using AsyncStorage mode - stable and reliable');
 
 // Authentication functions (Hybrid - Local storage with cloud database)
 export const loginUser = async (email, password) => {

@@ -1,17 +1,10 @@
-// Push Notification Service using React Native Firebase
+// Push Notification Service - Disabled for stability
 import { Platform, PermissionsAndroid } from 'react-native';
 
 let messaging = null;
 let messagingAvailable = false;
 
-// Try to load messaging, but don't crash if it fails
-try {
-  messaging = require('@react-native-firebase/messaging').default;
-  messagingAvailable = true;
-  console.log('✅ Firebase Messaging loaded');
-} catch (error) {
-  console.log('⚠️ Firebase Messaging not available');
-}
+console.log('⚠️ Push notifications disabled - using stable mode');
 
 // Request notification permission
 export const requestNotificationPermission = async () => {
