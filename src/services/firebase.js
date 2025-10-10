@@ -1,48 +1,81 @@
-// LIVE MODE: Real Firebase connection
+// LIVE MODE: Real Firebase connection with local auth
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, push, onValue, update, remove, get } from 'firebase/database';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { firebaseConfig } from '../../firebaseConfig';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
-const auth = getAuth(app);
+let auth = null;
 
-// Authentication functions (LIVE MODE - Real Firebase Auth)
+// Authentication functions (Hybrid - Local storage with cloud database)
 export const loginUser = async (email, password) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const usersData = await AsyncStorage.getItem('registeredUsers');
+    const users = usersData ? JSON.parse(usersData) : {};
+    
+    if (!users[email]) {
+      return { 
+        success: false, 
+        error: 'No account found with this email address' 
+      };
+    }
+    
+    if (users[email].password !== password) {
+      return { 
+        success: false, 
+        error: 'Incorrect password. Please try again.' 
+      };
+    }
+    
     return { 
       success: true, 
       user: { 
-        uid: userCredential.user.uid, 
-        email: userCredential.user.email 
+        uid: users[email].uid, 
+        email: email 
       } 
     };
   } catch (error) {
-    let errorMessage = 'Login failed. Please try again.';
-    if (error.code === 'auth/user-not-found') {
-      errorMessage = 'No account found with this email address';
-    } else if (error.code === 'auth/wrong-password') {
-      errorMessage = 'Incorrect password. Please try again.';
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Invalid email address';
-    }
     return { 
       success: false, 
-      error: errorMessage 
+      error: 'Login failed. Please try again.' 
     };
   }
 };
 
 export const registerUser = async (email, password, isAdmin = false) => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const userId = userCredential.user.uid;
+    const usersData = await AsyncStorage.getItem('registeredUsers');
+    const users = usersData ? JSON.parse(usersData) : {};
     
-    // Save admin status to database
+    if (users[email]) {
+      return { 
+        success: false, 
+        error: 'An account with this email already exists' 
+      };
+    }
+    
+    const userId = 'user-' + Date.now();
+    users[email] = {
+      uid: userId,
+      email: email,
+      password: password,
+      createdAt: Date.now()
+    };
+    
+    await AsyncStorage.setItem('registeredUsers', JSON.stringify(users));
+    
+    // Save admin status locally and to cloud
     if (isAdmin) {
+      const adminUsers = await AsyncStorage.getItem('adminUsers');
+      const admins = adminUsers ? JSON.parse(adminUsers) : [];
+      if (!admins.includes(email)) {
+        admins.push(email);
+        await AsyncStorage.setItem('adminUsers', JSON.stringify(admins));
+      }
+      
+      // Also save to cloud database
       await set(ref(database, `admins/${userId}`), {
         email: email,
         createdAt: Date.now()
@@ -54,32 +87,19 @@ export const registerUser = async (email, password, isAdmin = false) => {
       user: { uid: userId, email: email } 
     };
   } catch (error) {
-    let errorMessage = 'Registration failed. Please try again.';
-    if (error.code === 'auth/email-already-in-use') {
-      errorMessage = 'An account with this email already exists';
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Invalid email address';
-    } else if (error.code === 'auth/weak-password') {
-      errorMessage = 'Password should be at least 6 characters';
-    }
     return { 
       success: false, 
-      error: errorMessage 
+      error: 'Registration failed. Please try again.' 
     };
   }
 };
 
 export const logoutUser = async () => {
-  try {
-    await signOut(auth);
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Logout failed' };
-  }
+  return { success: true };
 };
 
 export const getCurrentUser = () => {
-  return auth.currentUser;
+  return null;
 };
 
 export const checkIfAdmin = async (userId) => {
