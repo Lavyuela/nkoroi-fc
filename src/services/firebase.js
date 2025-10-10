@@ -1,9 +1,9 @@
-// DEMO MODE: Pure AsyncStorage - No Firebase initialization
-// This prevents crashes from Firebase SDK conflicts
+// LIVE MODE: React Native Firebase (Native SDK - No crashes!)
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import database from '@react-native-firebase/database';
+import messaging from '@react-native-firebase/messaging';
 
 let app = null;
-let database = null;
 let auth = null;
 
 // Authentication functions (Hybrid - Local storage with cloud database)
@@ -111,10 +111,12 @@ export const checkIfAdmin = async (userId) => {
   }
 };
 
-// Match functions (Hybrid - AsyncStorage with optional Firebase sync)
+// Match functions (LIVE - React Native Firebase Database)
 export const createMatch = async (matchData) => {
   try {
-    const matchId = 'match-' + Date.now();
+    const matchRef = database().ref('matches').push();
+    const matchId = matchRef.key;
+    
     const newMatch = {
       id: matchId,
       ...matchData,
@@ -125,49 +127,73 @@ export const createMatch = async (matchData) => {
       createdAt: Date.now(),
     };
     
-    // Save to local storage
-    const savedMatches = await AsyncStorage.getItem('demoMatches');
-    const matches = savedMatches ? JSON.parse(savedMatches) : [];
-    matches.push(newMatch);
-    await AsyncStorage.setItem('demoMatches', JSON.stringify(matches));
-    
+    await matchRef.set(newMatch);
     return { success: true, matchId };
   } catch (error) {
+    console.error('Create match error:', error);
     return { success: false, error: 'Failed to create match' };
   }
 };
 
 export const updateMatchScore = async (matchId, homeScore, awayScore) => {
-  return { success: true };
+  try {
+    await database().ref(`matches/${matchId}`).update({ homeScore, awayScore });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to update score' };
+  }
 };
 
 export const updateMatchStatus = async (matchId, status) => {
-  return { success: true };
+  try {
+    await database().ref(`matches/${matchId}`).update({ status });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to update status' };
+  }
 };
 
 export const addMatchEvent = async (matchId, event) => {
-  return { success: true };
+  try {
+    await database().ref(`matches/${matchId}/events`).push(event);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to add event' };
+  }
 };
 
 export const deleteMatch = async (matchId) => {
-  return { success: true };
+  try {
+    await database().ref(`matches/${matchId}`).remove();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to delete match' };
+  }
 };
 
 export const subscribeToMatches = (callback) => {
-  AsyncStorage.getItem('demoMatches').then(data => {
-    const matches = data ? JSON.parse(data) : [];
+  const matchesRef = database().ref('matches');
+  
+  const onValueChange = matchesRef.on('value', (snapshot) => {
+    const matchesData = snapshot.val();
+    const matches = matchesData ? Object.values(matchesData) : [];
     callback(matches);
   });
-  return () => {};
+  
+  // Return unsubscribe function
+  return () => matchesRef.off('value', onValueChange);
 };
 
 export const subscribeToMatch = (matchId, callback) => {
-  AsyncStorage.getItem('demoMatches').then(data => {
-    const matches = data ? JSON.parse(data) : [];
-    const match = matches.find(m => m.id === matchId);
+  const matchRef = database().ref(`matches/${matchId}`);
+  
+  const onValueChange = matchRef.on('value', (snapshot) => {
+    const match = snapshot.val();
     if (match) callback(match);
   });
-  return () => {};
+  
+  // Return unsubscribe function
+  return () => matchRef.off('value', onValueChange);
 };
 
 export { auth, database };
