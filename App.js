@@ -29,29 +29,36 @@ export default function App() {
     
     requestPermissions();
     
-    // Listen for new notifications in Firebase
+    // Track the last notification timestamp to avoid duplicates
+    let lastNotificationTime = Date.now();
+    
+    // Listen for ALL new notifications in Firebase
     const unsubscribe = firestore()
       .collection('notifications')
       .orderBy('createdAt', 'desc')
-      .limit(1)
       .onSnapshot(async (snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
           if (change.type === 'added') {
             const notification = change.doc.data();
+            const notificationTime = notification.createdAt?.toMillis() || 0;
             
-            // Show local notification
-            await Notifications.scheduleNotificationAsync({
-              content: {
-                title: notification.title,
-                body: notification.body,
-                data: notification.data || {},
-                sound: true,
-                priority: Notifications.AndroidNotificationPriority.MAX,
-              },
-              trigger: null, // Show immediately
-            });
-            
-            console.log('📬 Notification shown:', notification.title);
+            // Only show notifications created after app started (avoid showing old ones on startup)
+            if (notificationTime > lastNotificationTime) {
+              // Show local notification
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: notification.title,
+                  body: notification.body,
+                  data: notification.data || {},
+                  sound: true,
+                  priority: Notifications.AndroidNotificationPriority.MAX,
+                  vibrate: [0, 250, 250, 250],
+                },
+                trigger: null, // Show immediately
+              });
+              
+              console.log('📬 Notification shown:', notification.title);
+            }
           }
         });
       });
