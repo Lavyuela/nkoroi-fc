@@ -20,17 +20,21 @@
     },
     "android": {
       "package": "com.nkoroifc.livescore",
-      "versionCode": 4,
+      "versionCode": 5,
       "permissions": [
         "NOTIFICATIONS"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#4FC3F7"
       },
-      "buildToolsVersion": "34.0.0"
+      "buildToolsVersion": "34.0.0",
+      "googleServicesFile": "./android/app/google-services.json"
     },
     "plugins": [
-      "expo-notifications"
+      "expo-notifications",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@react-native-firebase/firestore"
     ],
     "extra": {
       "eas": {
