@@ -1,11 +1,11 @@
-// Push Notification Service - Sends notifications even when app is closed
+// Push Notification Service - Firebase Cloud Messaging (FCM)
+import messaging from '@react-native-firebase/messaging';
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 
-// Configure notification behavior
+// Configure notification behavior for foreground notifications
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -15,17 +15,11 @@ Notifications.setNotificationHandler({
 });
 
 /**
- * Register device for push notifications and save token to Firestore
+ * Register device for Expo Push Notifications and save token to Firestore
  */
 export const registerForPushNotifications = async () => {
   try {
-    // Check if device is physical (push notifications don't work on emulators)
-    if (!Device.isDevice) {
-      console.log('⚠️ Push notifications only work on physical devices');
-      return { success: false, error: 'Not a physical device' };
-    }
-
-    // Request permission
+    // Request notification permission
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     
@@ -41,7 +35,7 @@ export const registerForPushNotifications = async () => {
 
     // Get Expo Push Token
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: 'your-project-id', // This will be auto-detected from app.json
+      projectId: '7f3faf6f-5c89-4a7b-8bd5-03e48f0c6098', // From app.json
     });
     
     const expoPushToken = tokenData.data;
@@ -53,14 +47,10 @@ export const registerForPushNotifications = async () => {
       await firestore().collection('users').doc(currentUser.uid).set({
         expoPushToken,
         expoPushTokenUpdatedAt: firestore.FieldValue.serverTimestamp(),
-        deviceInfo: {
-          platform: Platform.OS,
-          deviceName: Device.deviceName,
-          osVersion: Device.osVersion,
-        },
+        platform: Platform.OS,
       }, { merge: true });
       
-      console.log('✅ Push token saved to Firestore');
+      console.log('✅ Expo Push token saved to Firestore');
     }
 
     // Configure notification channel for Android
@@ -82,29 +72,31 @@ export const registerForPushNotifications = async () => {
 };
 
 /**
- * Send push notification to all users
- * This uses Expo's Push Notification service
+ * Send push notification to all users via Expo Push Notification Service
+ * This works even when the app is CLOSED!
  */
 export const sendPushNotificationToAllUsers = async (title, body, data = {}) => {
   try {
-    // Get all users with push tokens
+    // Get all users with Expo Push Tokens
     const usersSnapshot = await firestore().collection('users').get();
-    const pushTokens = [];
+    const expoPushTokens = [];
     
     usersSnapshot.forEach(doc => {
       const userData = doc.data();
       if (userData.expoPushToken) {
-        pushTokens.push(userData.expoPushToken);
+        expoPushTokens.push(userData.expoPushToken);
       }
     });
 
-    if (pushTokens.length === 0) {
-      console.log('⚠️ No push tokens found');
+    if (expoPushTokens.length === 0) {
+      console.log('⚠️ No Expo Push tokens found');
       return { success: false, error: 'No users to notify' };
     }
 
-    // Prepare push notification messages
-    const messages = pushTokens.map(token => ({
+    console.log(`📤 Sending push notification to ${expoPushTokens.length} devices...`);
+
+    // Prepare messages for Expo Push API
+    const messages = expoPushTokens.map(token => ({
       to: token,
       sound: 'default',
       title: title,
@@ -112,33 +104,35 @@ export const sendPushNotificationToAllUsers = async (title, body, data = {}) => 
       data: data,
       priority: 'high',
       channelId: 'default',
-      badge: 1,
     }));
 
-    // Send to Expo Push Notification service
+    // Send to Expo Push Notification Service
     const response = await fetch('https://exp.host/--/api/v2/push/send', {
       method: 'POST',
       headers: {
         Accept: 'application/json',
+        'Accept-Encoding': 'gzip, deflate',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(messages),
     });
 
     const result = await response.json();
-    console.log('✅ Push notifications sent:', result);
+    console.log('✅ Expo Push API response:', result);
 
-    // Also save to Firestore for in-app notification history
+    // Save notification to Firestore for history
     await firestore().collection('notifications').add({
       title,
       body,
       data,
       createdAt: firestore.FieldValue.serverTimestamp(),
-      sentTo: pushTokens.length,
+      sentTo: expoPushTokens.length,
       read: false,
     });
 
-    return { success: true, sentTo: pushTokens.length };
+    console.log(`✅ Push notifications sent to ${expoPushTokens.length} devices!`);
+
+    return { success: true, sentTo: expoPushTokens.length };
   } catch (error) {
     console.error('Error sending push notification:', error);
     return { success: false, error: error.message };
