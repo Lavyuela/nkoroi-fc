@@ -1,20 +1,20 @@
 @echo off
-cd /d "c:\Users\Admin\Downloads\Nkoroi FC\android"
 echo ========================================
-echo Building Nkoroi FC APK (Local Build)
-echo ========================================
-echo.
-echo This will take 5-10 minutes...
-echo.
-call gradlew.bat assembleRelease
-echo.
-echo ========================================
-echo Build Complete!
+echo Building Nkoroi FC APK with Firebase
 echo ========================================
 echo.
-echo APK Location:
-echo android\app\build\outputs\apk\release\app-release.apk
+
+echo Step 1: Installing dependencies...
+call npm install
+
 echo.
-echo You can now share this APK file!
+echo Step 2: Building APK with EAS...
+echo This will take 10-15 minutes...
+call npx eas-cli build --platform android --profile preview
+
+echo.
+echo ========================================
+echo Build complete!
+echo Download link will appear above
 echo ========================================
 pause
