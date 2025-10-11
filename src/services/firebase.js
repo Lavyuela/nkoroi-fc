@@ -66,6 +66,16 @@ export const registerUser = async (email, password, isAdmin = false) => {
     
     await AsyncStorage.setItem('registeredUsers', JSON.stringify(users));
     
+    // Make first user Super Admin
+    const superAdminData = await AsyncStorage.getItem('superAdmins');
+    const superAdmins = superAdminData ? JSON.parse(superAdminData) : [];
+    
+    if (superAdmins.length === 0) {
+      superAdmins.push(email);
+      await AsyncStorage.setItem('superAdmins', JSON.stringify(superAdmins));
+      console.log(`✅ First user ${email} made Super Admin`);
+    }
+    
     // Save admin status locally
     if (isAdmin) {
       const adminUsers = await AsyncStorage.getItem('adminUsers');

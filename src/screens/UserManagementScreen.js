@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 
 const UserManagementScreen = ({ navigation }) => {
-  const { user: currentUser, isAdmin } = useAuth();
+  const { user: currentUser, isSuperAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -16,32 +16,39 @@ const UserManagementScreen = ({ navigation }) => {
   const [dialogAction, setDialogAction] = useState(null);
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isSuperAdmin) {
       navigation.replace('Home');
       return;
     }
     loadUsers();
-  }, [isAdmin]);
+  }, [isSuperAdmin]);
 
   const loadUsers = async () => {
     try {
       const usersData = await AsyncStorage.getItem('registeredUsers');
       const adminData = await AsyncStorage.getItem('adminUsers');
+      const superAdminData = await AsyncStorage.getItem('superAdmins');
       
       const usersObj = usersData ? JSON.parse(usersData) : {};
       const adminEmails = adminData ? JSON.parse(adminData) : [];
+      const superAdminEmails = superAdminData ? JSON.parse(superAdminData) : [];
 
       const usersList = Object.entries(usersObj).map(([email, userData]) => ({
         email,
         ...userData,
+        isSuperAdmin: superAdminEmails.includes(email),
         isAdmin: adminEmails.includes(email),
         isCurrentUser: email === currentUser?.email,
+        role: superAdminEmails.includes(email) ? 'super_admin' : 
+              adminEmails.includes(email) ? 'admin' : 'fan',
       }));
 
-      // Sort: current user first, then admins, then regular users
+      // Sort: current user first, then super admins, then admins, then fans
       usersList.sort((a, b) => {
         if (a.isCurrentUser) return -1;
         if (b.isCurrentUser) return 1;
+        if (a.isSuperAdmin && !b.isSuperAdmin) return -1;
+        if (!a.isSuperAdmin && b.isSuperAdmin) return 1;
         if (a.isAdmin && !b.isAdmin) return -1;
         if (!a.isAdmin && b.isAdmin) return 1;
         return a.email.localeCompare(b.email);
@@ -94,6 +101,43 @@ const UserManagementScreen = ({ navigation }) => {
     setDialogAction(null);
   };
 
+  const handleMakeSuperAdmin = async (user) => {
+    try {
+      const superAdminData = await AsyncStorage.getItem('superAdmins');
+      const superAdminEmails = superAdminData ? JSON.parse(superAdminData) : [];
+      
+      if (!superAdminEmails.includes(user.email)) {
+        superAdminEmails.push(user.email);
+        await AsyncStorage.setItem('superAdmins', JSON.stringify(superAdminEmails));
+        Alert.alert('Success', `${user.email} is now a Super Admin with full system access`);
+        loadUsers();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to make user super admin');
+    }
+    hideDialog();
+  };
+
+  const handleRemoveSuperAdmin = async (user) => {
+    try {
+      if (user.isCurrentUser) {
+        Alert.alert('Error', 'You cannot remove your own super admin access');
+        return;
+      }
+
+      const superAdminData = await AsyncStorage.getItem('superAdmins');
+      const superAdminEmails = superAdminData ? JSON.parse(superAdminData) : [];
+      
+      const updatedSuperAdmins = superAdminEmails.filter(email => email !== user.email);
+      await AsyncStorage.setItem('superAdmins', JSON.stringify(updatedSuperAdmins));
+      Alert.alert('Success', `${user.email} is no longer a Super Admin`);
+      loadUsers();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to remove super admin access');
+    }
+    hideDialog();
+  };
+
   const handleMakeAdmin = async (user) => {
     try {
       const adminData = await AsyncStorage.getItem('adminUsers');
@@ -102,7 +146,7 @@ const UserManagementScreen = ({ navigation }) => {
       if (!adminEmails.includes(user.email)) {
         adminEmails.push(user.email);
         await AsyncStorage.setItem('adminUsers', JSON.stringify(adminEmails));
-        Alert.alert('Success', `${user.email} is now an admin`);
+        Alert.alert('Success', `${user.email} is now an Admin`);
         loadUsers();
       }
     } catch (error) {
@@ -144,7 +188,15 @@ const UserManagementScreen = ({ navigation }) => {
       delete usersObj[user.email];
       await AsyncStorage.setItem('registeredUsers', JSON.stringify(usersObj));
 
-      // Also remove from admin list if present
+      // Remove from super admin list if present
+      if (user.isSuperAdmin) {
+        const superAdminData = await AsyncStorage.getItem('superAdmins');
+        const superAdminEmails = superAdminData ? JSON.parse(superAdminData) : [];
+        const updatedSuperAdmins = superAdminEmails.filter(email => email !== user.email);
+        await AsyncStorage.setItem('superAdmins', JSON.stringify(updatedSuperAdmins));
+      }
+
+      // Remove from admin list if present
       if (user.isAdmin) {
         const adminData = await AsyncStorage.getItem('adminUsers');
         const adminEmails = adminData ? JSON.parse(adminData) : [];
@@ -164,6 +216,12 @@ const UserManagementScreen = ({ navigation }) => {
     if (!selectedUser || !dialogAction) return;
 
     switch (dialogAction) {
+      case 'makeSuperAdmin':
+        handleMakeSuperAdmin(selectedUser);
+        break;
+      case 'removeSuperAdmin':
+        handleRemoveSuperAdmin(selectedUser);
+        break;
       case 'makeAdmin':
         handleMakeAdmin(selectedUser);
         break;
@@ -180,17 +238,31 @@ const UserManagementScreen = ({ navigation }) => {
     if (!selectedUser || !dialogAction) return {};
 
     switch (dialogAction) {
+      case 'makeSuperAdmin':
+        return {
+          title: 'Make Super Admin',
+          content: `Grant FULL SYSTEM ACCESS to ${selectedUser.email}? Super Admins can manage all users and access analytics.`,
+          confirmText: 'Make Super Admin',
+          confirmColor: '#f44336',
+        };
+      case 'removeSuperAdmin':
+        return {
+          title: 'Remove Super Admin',
+          content: `Remove super admin privileges from ${selectedUser.email}? They will become a regular admin.`,
+          confirmText: 'Remove Super Admin',
+          confirmColor: '#ff9800',
+        };
       case 'makeAdmin':
         return {
           title: 'Make Admin',
-          content: `Grant admin privileges to ${selectedUser.email}?`,
+          content: `Grant admin privileges to ${selectedUser.email}? Admins can create and manage matches.`,
           confirmText: 'Make Admin',
           confirmColor: '#4FC3F7',
         };
       case 'removeAdmin':
         return {
           title: 'Remove Admin',
-          content: `Remove admin privileges from ${selectedUser.email}?`,
+          content: `Remove admin privileges from ${selectedUser.email}? They will become a regular fan.`,
           confirmText: 'Remove Admin',
           confirmColor: '#ff9800',
         };
@@ -212,10 +284,11 @@ const UserManagementScreen = ({ navigation }) => {
         <View style={styles.userRow}>
           <Avatar.Icon 
             size={48} 
-            icon={item.isAdmin ? 'shield-account' : 'account'} 
+            icon={item.isSuperAdmin ? 'shield-crown' : item.isAdmin ? 'shield-account' : 'account'} 
             style={[
               styles.avatar,
-              item.isAdmin && styles.adminAvatar,
+              item.isSuperAdmin && styles.superAdminAvatar,
+              item.isAdmin && !item.isSuperAdmin && styles.adminAvatar,
               item.isCurrentUser && styles.currentUserAvatar,
             ]}
           />
@@ -231,7 +304,17 @@ const UserManagementScreen = ({ navigation }) => {
             </View>
             
             <View style={styles.userMeta}>
-              {item.isAdmin && (
+              {item.isSuperAdmin && (
+                <Chip 
+                  mode="flat" 
+                  icon="shield-crown" 
+                  style={styles.superAdminChip}
+                  textStyle={styles.chipText}
+                >
+                  Super Admin
+                </Chip>
+              )}
+              {item.isAdmin && !item.isSuperAdmin && (
                 <Chip 
                   mode="flat" 
                   icon="shield-check" 
@@ -239,6 +322,16 @@ const UserManagementScreen = ({ navigation }) => {
                   textStyle={styles.chipText}
                 >
                   Admin
+                </Chip>
+              )}
+              {!item.isAdmin && !item.isSuperAdmin && (
+                <Chip 
+                  mode="flat" 
+                  icon="account" 
+                  style={styles.fanChip}
+                  textStyle={styles.chipText}
+                >
+                  Fan
                 </Chip>
               )}
               <Text style={styles.userDate}>
@@ -257,14 +350,28 @@ const UserManagementScreen = ({ navigation }) => {
               />
             }
           >
-            {!item.isAdmin && (
+            {!item.isSuperAdmin && !item.isAdmin && (
               <Menu.Item
                 leadingIcon="shield-plus"
                 onPress={() => showDialog(item, 'makeAdmin')}
                 title="Make Admin"
               />
             )}
-            {item.isAdmin && !item.isCurrentUser && (
+            {!item.isSuperAdmin && item.isAdmin && (
+              <Menu.Item
+                leadingIcon="shield-crown"
+                onPress={() => showDialog(item, 'makeSuperAdmin')}
+                title="Make Super Admin"
+              />
+            )}
+            {item.isSuperAdmin && !item.isCurrentUser && (
+              <Menu.Item
+                leadingIcon="shield-remove"
+                onPress={() => showDialog(item, 'removeSuperAdmin')}
+                title="Remove Super Admin"
+              />
+            )}
+            {item.isAdmin && !item.isSuperAdmin && !item.isCurrentUser && (
               <Menu.Item
                 leadingIcon="shield-remove"
                 onPress={() => showDialog(item, 'removeAdmin')}
@@ -304,14 +411,14 @@ const UserManagementScreen = ({ navigation }) => {
         />
 
         <View style={styles.statsRow}>
-          <Chip icon="account-group" style={styles.statChip}>
-            Total: {users.length}
+          <Chip icon="shield-crown" style={styles.statChip}>
+            Super: {users.filter(u => u.isSuperAdmin).length}
           </Chip>
           <Chip icon="shield-account" style={styles.statChip}>
-            Admins: {users.filter(u => u.isAdmin).length}
+            Admins: {users.filter(u => u.isAdmin && !u.isSuperAdmin).length}
           </Chip>
           <Chip icon="account" style={styles.statChip}>
-            Users: {users.filter(u => !u.isAdmin).length}
+            Fans: {users.filter(u => !u.isAdmin && !u.isSuperAdmin).length}
           </Chip>
         </View>
 
@@ -389,6 +496,9 @@ const styles = StyleSheet.create({
   avatar: {
     backgroundColor: '#4FC3F7',
   },
+  superAdminAvatar: {
+    backgroundColor: '#f44336',
+  },
   adminAvatar: {
     backgroundColor: '#ff9800',
   },
@@ -418,8 +528,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  superAdminChip: {
+    backgroundColor: '#f44336',
+    marginRight: 8,
+    height: 24,
+  },
   adminChip: {
     backgroundColor: '#ff9800',
+    marginRight: 8,
+    height: 24,
+  },
+  fanChip: {
+    backgroundColor: '#4FC3F7',
     marginRight: 8,
     height: 24,
   },

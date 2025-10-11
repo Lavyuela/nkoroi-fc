@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { subscribeToMatches, logoutUser } from '../services/firebase';
 
 const HomeScreen = ({ navigation }) => {
-  const { user, isAdmin, clearUserSession } = useAuth();
+  const { user, isAdmin, isSuperAdmin, clearUserSession } = useAuth();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -148,17 +148,21 @@ const HomeScreen = ({ navigation }) => {
 
       {isAdmin && (
         <View style={styles.adminBadge}>
-          <Text style={styles.adminText}>👑 Admin Mode</Text>
+          <Text style={styles.adminText}>
+            {isSuperAdmin ? '👑 Super Admin Mode' : '🛡️ Admin Mode'}
+          </Text>
           <View style={styles.adminQuickActions}>
-            <Button
-              mode="outlined"
-              onPress={() => navigation.navigate('AdminDashboard')}
-              icon="view-dashboard"
-              style={styles.quickActionButton}
-              compact
-            >
-              Dashboard
-            </Button>
+            {isSuperAdmin && (
+              <Button
+                mode="outlined"
+                onPress={() => navigation.navigate('AdminDashboard')}
+                icon="view-dashboard"
+                style={styles.quickActionButton}
+                compact
+              >
+                Dashboard
+              </Button>
+            )}
             <Button
               mode="outlined"
               onPress={() => navigation.navigate('CreateMatch')}

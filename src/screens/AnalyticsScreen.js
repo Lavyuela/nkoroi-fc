@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 const { width } = Dimensions.get('window');
 
 const AnalyticsScreen = ({ navigation }) => {
-  const { isAdmin } = useAuth();
+  const { isSuperAdmin } = useAuth();
   const [analytics, setAnalytics] = useState({
     users: {
       total: 0,
@@ -35,12 +35,12 @@ const AnalyticsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isSuperAdmin) {
       navigation.replace('Home');
       return;
     }
     loadAnalytics();
-  }, [isAdmin]);
+  }, [isSuperAdmin]);
 
   const loadAnalytics = async () => {
     try {

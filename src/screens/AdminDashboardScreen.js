@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 
 const AdminDashboardScreen = ({ navigation }) => {
-  const { isAdmin } = useAuth();
+  const { isSuperAdmin } = useAuth();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalMatches: 0,
@@ -18,12 +18,12 @@ const AdminDashboardScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isSuperAdmin) {
       navigation.replace('Home');
       return;
     }
     loadDashboardData();
-  }, [isAdmin]);
+  }, [isSuperAdmin]);
 
   const loadDashboardData = async () => {
     try {
@@ -104,10 +104,10 @@ const AdminDashboardScreen = ({ navigation }) => {
         <Card style={styles.welcomeCard}>
           <Card.Content>
             <Text variant="headlineSmall" style={styles.welcomeTitle}>
-              👋 Welcome, Admin!
+              👑 Welcome, Super Admin!
             </Text>
             <Text style={styles.welcomeText}>
-              Manage your app, view analytics, and control user access
+              Full system control: Manage users, view analytics, and oversee all operations
             </Text>
           </Card.Content>
         </Card>

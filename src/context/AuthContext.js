@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getUserRole, USER_ROLES, isSuperAdmin, isAdminOrAbove } from '../services/userRoles';
 
 const AuthContext = createContext();
 
@@ -13,7 +14,9 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState(USER_ROLES.FAN);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,11 +27,21 @@ export const AuthProvider = ({ children }) => {
   const loadUserSession = async () => {
     try {
       const savedUser = await AsyncStorage.getItem('currentUser');
-      const savedIsAdmin = await AsyncStorage.getItem('isAdmin');
       
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
-        setIsAdmin(savedIsAdmin === 'true');
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+        
+        // Get user role
+        const role = await getUserRole(userData.email);
+        setUserRole(role);
+        
+        // Set admin flags
+        const isAdminUser = await isAdminOrAbove(userData.email);
+        const isSuperAdminUser = await isSuperAdmin(userData.email);
+        
+        setIsAdmin(isAdminUser);
+        setIsSuperAdmin(isSuperAdminUser);
       }
     } catch (error) {
       console.log('Error loading user session:', error);
@@ -37,12 +50,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const saveUserSession = async (userData, adminStatus) => {
+  const saveUserSession = async (userData) => {
     try {
       await AsyncStorage.setItem('currentUser', JSON.stringify(userData));
-      await AsyncStorage.setItem('isAdmin', adminStatus.toString());
       setUser(userData);
-      setIsAdmin(adminStatus);
+      
+      // Get and set user role
+      const role = await getUserRole(userData.email);
+      setUserRole(role);
+      
+      // Set admin flags
+      const isAdminUser = await isAdminOrAbove(userData.email);
+      const isSuperAdminUser = await isSuperAdmin(userData.email);
+      
+      setIsAdmin(isAdminUser);
+      setIsSuperAdmin(isSuperAdminUser);
     } catch (error) {
       console.log('Error saving user session:', error);
     }
@@ -51,9 +73,10 @@ export const AuthProvider = ({ children }) => {
   const clearUserSession = async () => {
     try {
       await AsyncStorage.removeItem('currentUser');
-      await AsyncStorage.removeItem('isAdmin');
       setUser(null);
+      setUserRole(USER_ROLES.FAN);
       setIsAdmin(false);
+      setIsSuperAdmin(false);
     } catch (error) {
       console.log('Error clearing user session:', error);
     }
@@ -61,12 +84,16 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    userRole,
     isAdmin,
+    isSuperAdmin,
     loading,
     setUser,
     setIsAdmin,
+    setIsSuperAdmin,
     saveUserSession,
     clearUserSession,
+    loadUserSession, // Expose to refresh role after changes
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
