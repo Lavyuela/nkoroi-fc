@@ -201,7 +201,7 @@ export const deleteMatch = async (matchId) => {
 };
 
 export const subscribeToMatches = (callback) => {
-  // Use Firebase if available, otherwise use AsyncStorage
+  // Use Firebase if available, otherwise use AsyncStorage with polling
   if (firebaseAvailable && database) {
     try {
       const matchesRef = database().ref('matches');
@@ -216,16 +216,25 @@ export const subscribeToMatches = (callback) => {
     }
   }
   
-  // Fallback to AsyncStorage
-  AsyncStorage.getItem('demoMatches').then(data => {
+  // Fallback to AsyncStorage with polling (check every 2 seconds)
+  const loadMatches = async () => {
+    const data = await AsyncStorage.getItem('demoMatches');
     const matches = data ? JSON.parse(data) : [];
     callback(matches);
-  });
-  return () => {};
+  };
+  
+  // Load immediately
+  loadMatches();
+  
+  // Poll for changes every 2 seconds
+  const interval = setInterval(loadMatches, 2000);
+  
+  // Return cleanup function
+  return () => clearInterval(interval);
 };
 
 export const subscribeToMatch = (matchId, callback) => {
-  // Use Firebase if available, otherwise use AsyncStorage
+  // Use Firebase if available, otherwise use AsyncStorage with polling
   if (firebaseAvailable && database) {
     try {
       const matchRef = database().ref(`matches/${matchId}`);
@@ -239,13 +248,22 @@ export const subscribeToMatch = (matchId, callback) => {
     }
   }
   
-  // Fallback to AsyncStorage
-  AsyncStorage.getItem('demoMatches').then(data => {
+  // Fallback to AsyncStorage with polling (check every 1 second for match details)
+  const loadMatch = async () => {
+    const data = await AsyncStorage.getItem('demoMatches');
     const matches = data ? JSON.parse(data) : [];
     const match = matches.find(m => m.id === matchId);
     if (match) callback(match);
-  });
-  return () => {};
+  };
+  
+  // Load immediately
+  loadMatch();
+  
+  // Poll for changes every 1 second
+  const interval = setInterval(loadMatch, 1000);
+  
+  // Return cleanup function
+  return () => clearInterval(interval);
 };
 
 export { auth, database };
