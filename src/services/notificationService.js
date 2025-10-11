@@ -1,52 +1,61 @@
-// Push Notification Service - Disabled for stability
-import { Platform, PermissionsAndroid } from 'react-native';
+// Push Notification Service using Expo Notifications
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-let messaging = null;
-let messagingAvailable = false;
+// Configure notification behavior
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
-console.log('⚠️ Push notifications disabled - using stable mode');
-
-// Request notification permission
+// Request notification permissions
 export const requestNotificationPermission = async () => {
-  if (!messagingAvailable || !messaging) {
-    console.log('⚠️ Notifications not available');
-    return false;
-  }
-  
   try {
-    if (Platform.OS === 'android') {
-      if (Platform.Version >= 33) {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      }
-      return true; // Android < 13 doesn't need runtime permission
+    if (!Device.isDevice) {
+      console.log('⚠️ Notifications only work on physical devices');
+      return false;
+    }
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
     }
     
-    // iOS
-    const authStatus = await messaging().requestPermission();
-    return (
-      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-      authStatus === messaging.AuthorizationStatus.PROVISIONAL
-    );
+    if (finalStatus !== 'granted') {
+      console.log('❌ Notification permission denied');
+      return false;
+    }
+    
+    console.log('✅ Notification permission granted');
+    return true;
   } catch (error) {
     console.error('Permission request error:', error);
     return false;
   }
 };
 
-// Get FCM token
-export const getFCMToken = async () => {
-  if (!messagingAvailable || !messaging) {
-    console.log('⚠️ Cannot get FCM token - messaging not available');
-    return null;
-  }
-  
+// Get Expo Push Token
+export const getExpoPushToken = async () => {
   try {
-    const token = await messaging().getToken();
-    console.log('FCM Token:', token);
-    return token;
+    if (!Device.isDevice) {
+      console.log('⚠️ Push tokens only work on physical devices');
+      return null;
+    }
+
+    const token = await Notifications.getExpoPushTokenAsync({
+      projectId: Constants.expoConfig?.extra?.eas?.projectId,
+    });
+    
+    console.log('✅ Expo Push Token:', token.data);
+    return token.data;
   } catch (error) {
     console.error('Get token error:', error);
     return null;
@@ -54,48 +63,75 @@ export const getFCMToken = async () => {
 };
 
 // Setup notification listeners
-export const setupNotificationListeners = () => {
-  if (!messagingAvailable || !messaging) {
-    console.log('⚠️ Cannot setup listeners - messaging not available');
-    return () => {};
-  }
-  
+export const setupNotificationListeners = (onNotificationReceived, onNotificationTapped) => {
+  // Listener for notifications received while app is foregrounded
+  const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+    console.log('📬 Notification received:', notification);
+    if (onNotificationReceived) {
+      onNotificationReceived(notification);
+    }
+  });
+
+  // Listener for when user taps on notification
+  const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+    console.log('👆 Notification tapped:', response);
+    if (onNotificationTapped) {
+      onNotificationTapped(response);
+    }
+  });
+
+  // Return cleanup function
+  return () => {
+    Notifications.removeNotificationSubscription(notificationListener);
+    Notifications.removeNotificationSubscription(responseListener);
+  };
+};
+
+// Schedule local notification
+export const scheduleLocalNotification = async (title, body, data = {}) => {
   try {
-    // Foreground messages
-    const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
-      console.log('Foreground notification:', remoteMessage);
-      // You can show a local notification here if needed
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data,
+        sound: true,
+      },
+      trigger: null, // Show immediately
     });
-
-    // Background/Quit state messages
-    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-      console.log('Background notification:', remoteMessage);
-    });
-
-    // Notification opened app
-    messaging().onNotificationOpenedApp((remoteMessage) => {
-      console.log('Notification opened app:', remoteMessage);
-    });
-
-    // Check if app was opened by notification
-    messaging()
-      .getInitialNotification()
-      .then((remoteMessage) => {
-        if (remoteMessage) {
-          console.log('App opened by notification:', remoteMessage);
-        }
-      });
-
-    return unsubscribeForeground;
+    console.log('✅ Local notification scheduled');
   } catch (error) {
-    console.error('Setup listeners error:', error);
-    return () => {};
+    console.error('Schedule notification error:', error);
   }
 };
 
 // Send notification for match events
-export const sendMatchEventNotification = async (matchId, eventType, eventData) => {
-  // This would typically be done from your backend
-  // For now, we'll just log it
-  console.log('Match event notification:', { matchId, eventType, eventData });
+export const sendMatchEventNotification = async (eventType, matchData) => {
+  const notifications = {
+    'match_start': {
+      title: '⚽ Match Started!',
+      body: `${matchData.homeTeam} vs ${matchData.awayTeam} - Live now!`,
+    },
+    'goal': {
+      title: '🎯 GOAL!',
+      body: `${matchData.homeTeam} ${matchData.homeScore} - ${matchData.awayScore} ${matchData.awayTeam}`,
+    },
+    'yellow_card': {
+      title: '🟨 Yellow Card',
+      body: `${matchData.player} - ${matchData.team}`,
+    },
+    'red_card': {
+      title: '🟥 Red Card!',
+      body: `${matchData.player} - ${matchData.team}`,
+    },
+    'match_end': {
+      title: '🏁 Full Time',
+      body: `${matchData.homeTeam} ${matchData.homeScore} - ${matchData.awayScore} ${matchData.awayTeam}`,
+    },
+  };
+
+  const notification = notifications[eventType];
+  if (notification) {
+    await scheduleLocalNotification(notification.title, notification.body, matchData);
+  }
 };
