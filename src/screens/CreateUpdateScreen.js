@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Linking, Share } from 'react-native';
 import { TextInput, Button, Text, Appbar, Snackbar, RadioButton } from 'react-native-paper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createTeamUpdate } from '../services/firebaseService';
 
 const CreateUpdateScreen = ({ navigation }) => {
   const [title, setTitle] = useState('');
@@ -55,28 +55,26 @@ const CreateUpdateScreen = ({ navigation }) => {
     setLoading(true);
     
     try {
-      const updateId = 'update-' + Date.now();
-      const newUpdate = {
-        id: updateId,
+      const updateData = {
         title,
         content,
         type,
-        timestamp: Date.now(),
       };
       
-      const savedUpdates = await AsyncStorage.getItem('teamUpdates');
-      const updates = savedUpdates ? JSON.parse(savedUpdates) : [];
-      updates.unshift(newUpdate); // Add to beginning
-      await AsyncStorage.setItem('teamUpdates', JSON.stringify(updates));
+      const result = await createTeamUpdate(updateData);
       
-      setSuccess('Update posted successfully!');
-      
-      // Automatically share to WhatsApp
-      await shareToWhatsApp(title, content, type);
-      
-      setTimeout(() => {
-        navigation.goBack();
-      }, 500);
+      if (result.success) {
+        setSuccess('Update posted successfully! Notification sent to all fans.');
+        
+        // Automatically share to WhatsApp
+        await shareToWhatsApp(title, content, type);
+        
+        setTimeout(() => {
+          navigation.goBack();
+        }, 1500);
+      } else {
+        setError(result.error || 'Failed to create update');
+      }
     } catch (error) {
       setError('Failed to post update');
     } finally {

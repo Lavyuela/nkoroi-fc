@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Linking, Share, TouchableOpacity, Platform } from 'react-native';
 import { Text, Card, Button, Appbar, Chip, ActivityIndicator, FAB, Portal, Dialog, TextInput } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
+import { getMatch, updateMatch, addMatchEvent } from '../services/firebaseService';
+import firestore from '@react-native-firebase/firestore';
 
 const MatchDetailScreen = ({ route, navigation }) => {
   const { matchId } = route.params;
@@ -50,34 +51,32 @@ const MatchDetailScreen = ({ route, navigation }) => {
 
   const loadMatch = async () => {
     try {
-      const savedMatches = await AsyncStorage.getItem('demoMatches');
-      if (savedMatches) {
-        const matches = JSON.parse(savedMatches);
-        const matchData = matches.find(m => m.id === matchId);
-        if (matchData) {
-          setMatch(matchData);
-          setHomeScore(matchData.homeScore);
-          setAwayScore(matchData.awayScore);
-        }
-      }
+      // Real-time listener for match updates
+      const unsubscribe = firestore()
+        .collection('matches')
+        .doc(matchId)
+        .onSnapshot((doc) => {
+          if (doc.exists) {
+            const matchData = { id: doc.id, ...doc.data() };
+            setMatch(matchData);
+            setHomeScore(matchData.homeScore || 0);
+            setAwayScore(matchData.awayScore || 0);
+          }
+          setLoading(false);
+        });
+      
+      return unsubscribe;
     } catch (error) {
       console.log('Error loading match:', error);
-    } finally {
       setLoading(false);
     }
   };
 
-  const updateMatch = async (updates) => {
+  const updateMatchData = async (updates) => {
     try {
-      const savedMatches = await AsyncStorage.getItem('demoMatches');
-      if (savedMatches) {
-        const matches = JSON.parse(savedMatches);
-        const index = matches.findIndex(m => m.id === matchId);
-        if (index !== -1) {
-          matches[index] = { ...matches[index], ...updates };
-          await AsyncStorage.setItem('demoMatches', JSON.stringify(matches));
-          setMatch(matches[index]);
-        }
+      const result = await updateMatch(matchId, updates);
+      if (!result.success) {
+        Alert.alert('Error', result.error || 'Failed to update match');
       }
     } catch (error) {
       console.log('Error updating match:', error);
@@ -89,32 +88,18 @@ const MatchDetailScreen = ({ route, navigation }) => {
       type: eventType,
       team: team,
       description: description,
+      player: description, // For notification formatting
       timestamp: Date.now(),
       minute: minute || calculateMatchMinute(),
     };
     
-    const updatedEvents = [...(match.events || []), newEvent];
-    await updateMatch({ events: updatedEvents });
+    // Use Firebase function which sends notifications automatically
+    const result = await addMatchEvent(matchId, newEvent);
     
-    // Send immediate notification with high priority
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `${getEventIcon(eventType)} ${eventType.toUpperCase()}`,
-          body: description,
-          sound: 'default',
-          priority: Notifications.AndroidNotificationPriority.MAX,
-          vibrate: [0, 250, 250, 250],
-          badge: 1,
-        },
-        trigger: null, // null = immediate delivery
-        identifier: `event-${Date.now()}`, // Unique identifier
-        channelId: 'match-events', // Use our high-priority channel
-      });
-    } catch (notifError) {
-      console.log('Notification error (ignored):', notifError);
+    if (!result.success) {
+      Alert.alert('Error', result.error || 'Failed to add event');
     }
-
+    
     // Auto-share all events to WhatsApp
     shareEventToWhatsApp(newEvent);
   };
@@ -128,7 +113,7 @@ const MatchDetailScreen = ({ route, navigation }) => {
     const min = parseInt(minute);
     if (min >= 0 && min <= 120) { // Allow up to 120 minutes (90 + extra time)
       setCurrentMinute(min);
-      updateMatch({ currentMinute: min });
+      updateMatchData({ currentMinute: min });
     }
   };
 
@@ -136,7 +121,7 @@ const MatchDetailScreen = ({ route, navigation }) => {
     if (currentMinute < 120) {
       const newMinute = currentMinute + 1;
       setCurrentMinute(newMinute);
-      updateMatch({ currentMinute: newMinute });
+      updateMatchData({ currentMinute: newMinute });
     }
   };
 
@@ -144,7 +129,7 @@ const MatchDetailScreen = ({ route, navigation }) => {
     if (currentMinute > 0) {
       const newMinute = currentMinute - 1;
       setCurrentMinute(newMinute);
-      updateMatch({ currentMinute: newMinute });
+      updateMatchData({ currentMinute: newMinute });
     }
   };
 
@@ -205,12 +190,12 @@ const MatchDetailScreen = ({ route, navigation }) => {
   const handleStartMatch = async () => {
     const startTime = Date.now();
     setCurrentMinute(0);
-    await updateMatch({ status: 'live', matchStartTime: startTime, currentMinute: 0 });
+    await updateMatchData({ status: 'live', matchStartTime: startTime, currentMinute: 0 });
     await addEvent('kickoff', match.homeTeam, `Match started: ${match.homeTeam} vs ${match.awayTeam}`, 0);
   };
 
   const handleEndMatch = async () => {
-    await updateMatch({ status: 'finished' });
+    await updateMatchData({ status: 'finished' });
     const finalScore = `${match.homeScore}-${match.awayScore}`;
     await addEvent('fulltime', match.homeTeam, `Full Time: ${match.homeTeam} ${finalScore} ${match.awayTeam}`);
   };
@@ -259,7 +244,7 @@ const MatchDetailScreen = ({ route, navigation }) => {
     const scoringTeam = team === 'home' ? match.homeTeam : match.awayTeam;
     const score = `${newHomeScore}-${newAwayScore}`;
     
-    await updateMatch({ 
+    await updateMatchData({ 
       homeScore: newHomeScore, 
       awayScore: newAwayScore,
     });

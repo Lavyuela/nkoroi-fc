@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { TextInput, Button, Text, Appbar, Snackbar } from 'react-native-paper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { createMatch } from '../services/firebaseService';
 
 const CreateMatchScreen = ({ navigation }) => {
   const [homeTeam, setHomeTeam] = useState('');
@@ -26,28 +26,21 @@ const CreateMatchScreen = ({ navigation }) => {
     setLoading(true);
     
     try {
-      // DEMO MODE: Save to AsyncStorage
-      const matchId = 'match-' + Date.now();
-      const newMatch = {
-        id: matchId,
+      const matchData = {
         homeTeam,
         awayTeam,
         venue,
         matchDate: matchDate.getTime(),
-        homeScore: 0,
-        awayScore: 0,
-        status: 'upcoming',
-        events: [],
-        createdAt: Date.now(),
       };
       
-      const savedMatches = await AsyncStorage.getItem('demoMatches');
-      const matches = savedMatches ? JSON.parse(savedMatches) : [];
-      matches.push(newMatch);
+      const result = await createMatch(matchData);
       
-      // Save and navigate back immediately
-      AsyncStorage.setItem('demoMatches', JSON.stringify(matches));
-      navigation.goBack();
+      if (result.success) {
+        setSuccess('Match created successfully! Notification sent to all fans.');
+        setTimeout(() => navigation.goBack(), 1500);
+      } else {
+        setError(result.error || 'Failed to create match');
+      }
     } catch (error) {
       setError('Failed to create match');
     } finally {
