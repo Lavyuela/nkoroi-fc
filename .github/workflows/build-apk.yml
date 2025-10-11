@@ -11,29 +11,27 @@ jobs:
     
     steps:
       - name: 📥 Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: '20'
       
       - name: 📦 Install dependencies
-        run: npm ci
+        run: npm install
       
       - name: 🔧 Setup Expo
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
+          eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
       
       - name: 🏗️ Build APK with EAS
-        run: |
-          npm install -g eas-cli
-          eas build --platform android --profile preview --non-interactive --no-wait
+        run: eas build --platform android --profile preview --non-interactive --no-wait
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       
       - name: ✅ Build started
-        run: echo "APK build started! Check https://expo.dev for download link"
+        run: echo "✅ APK build started! Check https://expo.dev for download link"
