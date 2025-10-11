@@ -604,37 +604,20 @@ export const setupNotificationListeners = () => {
 
 export const sendNotificationToAllUsers = async (title, body, data = {}) => {
   try {
-    // Get all user FCM tokens
-    const usersSnapshot = await firestore().collection('users').get();
-    const tokens = [];
-    
-    usersSnapshot.forEach(doc => {
-      const userData = doc.data();
-      if (userData.fcmToken) {
-        tokens.push(userData.fcmToken);
-      }
-    });
-    
-    if (tokens.length === 0) {
-      console.log('⚠️ No FCM tokens found');
-      return { success: false, error: 'No users to notify' };
-    }
-    
-    // Note: Sending notifications requires Firebase Cloud Functions
-    // For now, we'll save the notification to Firestore
-    // and users will see it when they open the app
-    
-    await firestore().collection('notifications').add({
+    // Save notification to Firestore for all users to receive
+    const notificationData = {
       title,
       body,
       data,
-      tokens,
       createdAt: firestore.FieldValue.serverTimestamp(),
-      sent: false,
-    });
+      read: false,
+    };
     
-    console.log(`✅ Notification queued for ${tokens.length} users`);
-    return { success: true, userCount: tokens.length };
+    // Add to notifications collection
+    await firestore().collection('notifications').add(notificationData);
+    
+    console.log(`✅ Notification created: ${title}`);
+    return { success: true };
   } catch (error) {
     console.error('Error sending notification:', error);
     return { success: false, error: error.message };

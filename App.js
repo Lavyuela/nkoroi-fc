@@ -3,24 +3,60 @@ import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { requestNotificationPermission, setupNotificationListeners } from './src/services/firebaseService';
+import * as Notifications from 'expo-notifications';
+import firestore from '@react-native-firebase/firestore';
+
+// Configure how notifications are displayed
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export default function App() {
   useEffect(() => {
-    // Initialize Firebase notifications
-    const initNotifications = async () => {
-      const result = await requestNotificationPermission();
-      if (result.success) {
-        console.log('✅ Notifications enabled, FCM token:', result.token);
+    // Request notification permissions
+    const requestPermissions = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status === 'granted') {
+        console.log('✅ Notification permissions granted');
       } else {
-        console.log('⚠️ Notification permission denied');
+        console.log('⚠️ Notification permissions denied');
       }
-      
-      // Setup Firebase Cloud Messaging listeners
-      setupNotificationListeners();
     };
     
-    initNotifications();
+    requestPermissions();
+    
+    // Listen for new notifications in Firebase
+    const unsubscribe = firestore()
+      .collection('notifications')
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .onSnapshot(async (snapshot) => {
+        snapshot.docChanges().forEach(async (change) => {
+          if (change.type === 'added') {
+            const notification = change.doc.data();
+            
+            // Show local notification
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: notification.title,
+                body: notification.body,
+                data: notification.data || {},
+                sound: true,
+                priority: Notifications.AndroidNotificationPriority.MAX,
+              },
+              trigger: null, // Show immediately
+            });
+            
+            console.log('📬 Notification shown:', notification.title);
+          }
+        });
+      });
+    
+    return () => unsubscribe();
   }, []);
 
   return (
