@@ -337,6 +337,59 @@ export const addMatchEvent = async (matchId, event) => {
     });
     
     console.log('✅ Match event added:', matchId);
+    
+    // Get match details for notification
+    const matchDoc = await firestore().collection('matches').doc(matchId).get();
+    const matchData = matchDoc.data();
+    
+    // Create notification message based on event type
+    let notificationTitle = '⚽ Match Event!';
+    let notificationBody = '';
+    
+    switch (event.type) {
+      case 'goal':
+        notificationTitle = '⚽ GOAL!';
+        notificationBody = `${event.team} scored! ${event.player || 'Goal'} - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      case 'yellow_card':
+        notificationTitle = '🟨 Yellow Card';
+        notificationBody = `${event.player} (${event.team}) - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      case 'red_card':
+        notificationTitle = '🟥 Red Card!';
+        notificationBody = `${event.player} (${event.team}) sent off! - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      case 'substitution':
+        notificationTitle = '🔄 Substitution';
+        notificationBody = `${event.playerOut} ➡️ ${event.playerIn} (${event.team}) - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      case 'penalty':
+        notificationTitle = '⚠️ Penalty!';
+        notificationBody = `Penalty for ${event.team} - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      case 'kickoff':
+        notificationTitle = '🏁 Kick Off!';
+        notificationBody = `${matchData.homeTeam} vs ${matchData.awayTeam} has started!`;
+        break;
+      case 'halftime':
+        notificationTitle = '⏸️ Half Time';
+        notificationBody = `${matchData.homeTeam} ${matchData.homeScore} - ${matchData.awayScore} ${matchData.awayTeam}`;
+        break;
+      case 'fulltime':
+        notificationTitle = '🏁 Full Time!';
+        notificationBody = `${matchData.homeTeam} ${matchData.homeScore} - ${matchData.awayScore} ${matchData.awayTeam}`;
+        break;
+      default:
+        notificationBody = `${event.description || 'Match event'} - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+    }
+    
+    // Send notification to all users
+    await sendNotificationToAllUsers(
+      notificationTitle,
+      notificationBody,
+      { matchId, type: 'match_event', eventType: event.type }
+    );
+    
     return { success: true };
   } catch (error) {
     console.error('Error adding match event:', error);
