@@ -8,7 +8,6 @@ const RegisterScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -31,7 +30,7 @@ const RegisterScreen = ({ navigation }) => {
     }
 
     setLoading(true);
-    const result = await registerUser(email, password, isAdmin);
+    const result = await registerUser(email, password, false);
     setLoading(false);
 
     if (result.success) {
@@ -92,15 +91,6 @@ const RegisterScreen = ({ navigation }) => {
               style={styles.input}
               left={<TextInput.Icon icon="lock-check" />}
             />
-
-            <View style={styles.switchContainer}>
-              <Text style={styles.switchLabel}>Register as Admin</Text>
-              <Switch
-                value={isAdmin}
-                onValueChange={setIsAdmin}
-                color="#0277BD"
-              />
-            </View>
 
             <Button
               mode="contained"

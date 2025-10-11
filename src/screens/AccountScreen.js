@@ -8,52 +8,6 @@ import { USER_ROLES, getRoleDisplayName, getRoleColor } from '../services/userRo
 
 const AccountScreen = ({ navigation }) => {
   const { user, userRole, isAdmin, isSuperAdmin, clearUserSession } = useAuth();
-  const [adminToggle, setAdminToggle] = useState(isAdmin);
-
-  const toggleAdminStatus = async () => {
-    const newAdminStatus = !adminToggle;
-    
-    Alert.alert(
-      newAdminStatus ? 'Grant Admin Access' : 'Remove Admin Access',
-      newAdminStatus 
-        ? 'Grant yourself administrator privileges?' 
-        : 'Remove your administrator privileges?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: newAdminStatus ? 'Grant' : 'Remove',
-          onPress: async () => {
-            try {
-              const adminUsers = await AsyncStorage.getItem('adminUsers');
-              let admins = adminUsers ? JSON.parse(adminUsers) : [];
-              
-              if (newAdminStatus) {
-                // Add to admin list
-                if (!admins.includes(user?.email)) {
-                  admins.push(user?.email);
-                }
-              } else {
-                // Remove from admin list
-                admins = admins.filter(email => email !== user?.email);
-              }
-              
-              await AsyncStorage.setItem('adminUsers', JSON.stringify(admins));
-              setAdminToggle(newAdminStatus);
-              
-              Alert.alert(
-                'Success',
-                newAdminStatus 
-                  ? 'You now have administrator privileges! Please logout and login again.' 
-                  : 'Administrator privileges removed. Please logout and login again.'
-              );
-            } catch (error) {
-              Alert.alert('Error', 'Failed to update admin status');
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -123,33 +77,6 @@ const AccountScreen = ({ navigation }) => {
               left={props => <List.Icon {...props} icon={isSuperAdmin ? 'shield-crown' : isAdmin ? 'shield-account' : 'account'} />}
             />
             <Divider />
-            {isAdmin && (
-              <>
-                <List.Item
-                  title="Administrator Privileges"
-                  description="Enabled"
-                  left={props => <List.Icon {...props} icon="shield-crown" />}
-                  right={props => (
-                    <Switch
-                      value={true}
-                      onValueChange={toggleAdminStatus}
-                      color="#1a472a"
-                    />
-                  )}
-                />
-                <Divider />
-              </>
-            )}
-            {!isAdmin && (
-              <>
-                <List.Item
-                  title="Administrator Privileges"
-                  description="Contact an admin to request access"
-                  left={props => <List.Icon {...props} icon="shield-lock" />}
-                />
-                <Divider />
-              </>
-            )}
             <List.Item
               title="User ID"
               description={user?.uid || 'N/A'}
@@ -217,6 +144,45 @@ const AccountScreen = ({ navigation }) => {
                 title="View Team Stats"
                 description="Check team performance and statistics"
                 left={props => <List.Icon {...props} icon="chart-bar" color="#1a472a" />}
+              />
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Permissions Management (Super Admin Only) */}
+        {isSuperAdmin && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text style={styles.sectionTitle}>👑 Permissions Management</Text>
+              <Text style={styles.permissionDescription}>
+                As a Super Admin, you can manage user roles and permissions from the Dashboard.
+              </Text>
+              <Button
+                mode="contained"
+                onPress={() => navigation.navigate('UserManagement')}
+                style={styles.permissionButton}
+                icon="account-cog"
+                contentStyle={styles.buttonContent}
+              >
+                Manage User Roles
+              </Button>
+              <Divider style={styles.divider} />
+              <List.Item
+                title="Super Admin"
+                description="Full system access - Dashboard, User Management, Analytics"
+                left={props => <List.Icon {...props} icon="shield-crown" color="#f44336" />}
+              />
+              <Divider />
+              <List.Item
+                title="Admin"
+                description="Match management - Create, update, and manage matches"
+                left={props => <List.Icon {...props} icon="shield-account" color="#ff9800" />}
+              />
+              <Divider />
+              <List.Item
+                title="Fan"
+                description="View matches, make predictions, favorite matches"
+                left={props => <List.Icon {...props} icon="account" color="#4FC3F7" />}
               />
             </Card.Content>
           </Card>
@@ -352,6 +318,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     color: '#0288D1',
+  },
+  permissionDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    lineHeight: 20,
+  },
+  permissionButton: {
+    marginBottom: 15,
+    backgroundColor: '#f44336',
+  },
+  divider: {
+    marginVertical: 10,
   },
   settingsButton: {
     marginTop: 10,
