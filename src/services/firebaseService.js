@@ -342,44 +342,146 @@ export const addMatchEvent = async (matchId, event) => {
     const matchDoc = await firestore().collection('matches').doc(matchId).get();
     const matchData = matchDoc.data();
     
+    // Get minute display (e.g., "23'", "45+2'", "90+4'")
+    const minute = event.minute ? `${event.minute}'` : '';
+    
     // Create notification message based on event type
     let notificationTitle = '⚽ Match Event!';
     let notificationBody = '';
     
     switch (event.type) {
       case 'goal':
-        notificationTitle = '⚽ GOAL!';
-        notificationBody = `${event.team} scored! ${event.player || 'Goal'} - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        notificationTitle = `⚽ GOAL! ${minute}`;
+        notificationBody = `${event.player || event.team} scores! ${matchData.homeTeam} vs ${matchData.awayTeam}`;
         break;
-      case 'yellow_card':
-        notificationTitle = '🟨 Yellow Card';
+      
+      case 'penalty_goal':
+        notificationTitle = `⚽ PENALTY GOAL! ${minute}`;
+        notificationBody = `${event.player} converts from the spot! ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
+      case 'own_goal':
+        notificationTitle = `⚽ OWN GOAL ${minute}`;
         notificationBody = `${event.player} (${event.team}) - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
         break;
-      case 'red_card':
-        notificationTitle = '🟥 Red Card!';
+      
+      case 'penalty_missed':
+        notificationTitle = `❌ PENALTY MISSED! ${minute}`;
+        notificationBody = `${event.player} misses from the spot! ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
+      case 'penalty_saved':
+        notificationTitle = `🧤 PENALTY SAVED! ${minute}`;
+        notificationBody = `${event.goalkeeper} saves ${event.player}'s penalty! ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
+      case 'yellow_card':
+        notificationTitle = `🟨 Yellow Card ${minute}`;
+        notificationBody = `${event.player} (${event.team}) booked - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
+      case 'second_yellow':
+        notificationTitle = `🟨🟥 Second Yellow! ${minute}`;
         notificationBody = `${event.player} (${event.team}) sent off! - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
         break;
+      
+      case 'red_card':
+        notificationTitle = `🟥 RED CARD! ${minute}`;
+        notificationBody = `${event.player} (${event.team}) sent off! - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
       case 'substitution':
-        notificationTitle = '🔄 Substitution';
-        notificationBody = `${event.playerOut} ➡️ ${event.playerIn} (${event.team}) - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        notificationTitle = `🔄 Substitution ${minute}`;
+        notificationBody = `${event.playerOut} ➡️ ${event.playerIn} (${event.team})`;
         break;
-      case 'penalty':
-        notificationTitle = '⚠️ Penalty!';
-        notificationBody = `Penalty for ${event.team} - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+      
+      case 'injury':
+        notificationTitle = `🚑 Injury ${minute}`;
+        notificationBody = `${event.player} (${event.team}) is down - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
         break;
+      
+      case 'injury_time':
+        notificationTitle = `⏱️ Injury Time`;
+        notificationBody = `${event.minutes} minutes added - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
+      case 'var_check':
+        notificationTitle = `📹 VAR Check ${minute}`;
+        notificationBody = `VAR reviewing ${event.reason} - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
+      case 'var_decision':
+        notificationTitle = `📹 VAR Decision ${minute}`;
+        notificationBody = `${event.decision} - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
+      case 'offside':
+        notificationTitle = `🚩 Offside ${minute}`;
+        notificationBody = `${event.player} (${event.team}) flagged offside - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
+      case 'corner':
+        notificationTitle = `⚽ Corner ${minute}`;
+        notificationBody = `Corner for ${event.team} - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
+      case 'free_kick':
+        notificationTitle = `⚽ Free Kick ${minute}`;
+        notificationBody = `Free kick for ${event.team} - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
+      case 'save':
+        notificationTitle = `🧤 Great Save! ${minute}`;
+        notificationBody = `${event.goalkeeper} denies ${event.player}! ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
+      case 'chance':
+        notificationTitle = `⚡ Big Chance! ${minute}`;
+        notificationBody = `${event.player} (${event.team}) misses! ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
       case 'kickoff':
-        notificationTitle = '🏁 Kick Off!';
+        notificationTitle = `🏁 Kick Off!`;
         notificationBody = `${matchData.homeTeam} vs ${matchData.awayTeam} has started!`;
         break;
+      
       case 'halftime':
-        notificationTitle = '⏸️ Half Time';
+        notificationTitle = `⏸️ Half Time`;
         notificationBody = `${matchData.homeTeam} ${matchData.homeScore} - ${matchData.awayScore} ${matchData.awayTeam}`;
         break;
+      
+      case 'second_half':
+        notificationTitle = `🏁 Second Half Underway`;
+        notificationBody = `${matchData.homeTeam} ${matchData.homeScore} - ${matchData.awayScore} ${matchData.awayTeam}`;
+        break;
+      
+      case 'extra_time':
+        notificationTitle = `⏱️ Extra Time`;
+        notificationBody = `Match goes to extra time! ${matchData.homeTeam} ${matchData.homeScore} - ${matchData.awayScore} ${matchData.awayTeam}`;
+        break;
+      
+      case 'penalties':
+        notificationTitle = `🎯 Penalty Shootout`;
+        notificationBody = `Match goes to penalties! ${matchData.homeTeam} vs ${matchData.awayTeam}`;
+        break;
+      
       case 'fulltime':
-        notificationTitle = '🏁 Full Time!';
+        notificationTitle = `🏁 Full Time!`;
         notificationBody = `${matchData.homeTeam} ${matchData.homeScore} - ${matchData.awayScore} ${matchData.awayTeam}`;
         break;
+      
+      case 'abandoned':
+        notificationTitle = `⛔ Match Abandoned`;
+        notificationBody = `${matchData.homeTeam} vs ${matchData.awayTeam} - ${event.reason}`;
+        break;
+      
+      case 'postponed':
+        notificationTitle = `📅 Match Postponed`;
+        notificationBody = `${matchData.homeTeam} vs ${matchData.awayTeam} - ${event.reason}`;
+        break;
+      
       default:
+        notificationTitle = `⚽ Match Event ${minute}`;
         notificationBody = `${event.description || 'Match event'} - ${matchData.homeTeam} vs ${matchData.awayTeam}`;
     }
     
@@ -387,7 +489,7 @@ export const addMatchEvent = async (matchId, event) => {
     await sendNotificationToAllUsers(
       notificationTitle,
       notificationBody,
-      { matchId, type: 'match_event', eventType: event.type }
+      { matchId, type: 'match_event', eventType: event.type, minute: event.minute }
     );
     
     return { success: true };
