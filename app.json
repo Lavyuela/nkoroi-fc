@@ -31,10 +31,7 @@
       "googleServicesFile": "./android/app/google-services.json"
     },
     "plugins": [
-      "expo-notifications",
-      "@react-native-firebase/app",
-      "@react-native-firebase/auth",
-      "@react-native-firebase/firestore"
+      "expo-notifications"
     ],
     "extra": {
       "eas": {
