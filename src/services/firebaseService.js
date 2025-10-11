@@ -627,20 +627,14 @@ export const setupNotificationListeners = () => {
 
 export const sendNotificationToAllUsers = async (title, body, data = {}) => {
   try {
-    // Save notification to Firestore for all users to receive
-    const notificationData = {
-      title,
-      body,
-      data,
-      createdAt: firestore.FieldValue.serverTimestamp(),
-      read: false,
-    };
+    // Import push notification service
+    const { sendPushNotificationToAllUsers } = require('./pushNotificationService');
     
-    // Add to notifications collection
-    await firestore().collection('notifications').add(notificationData);
+    // Send REAL push notifications to all users (works even when app is closed!)
+    const result = await sendPushNotificationToAllUsers(title, body, data);
     
-    console.log(`✅ Notification created: ${title}`);
-    return { success: true };
+    console.log(`✅ Push notification sent: ${title}`);
+    return result;
   } catch (error) {
     console.error('Error sending notification:', error);
     return { success: false, error: error.message };
