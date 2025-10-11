@@ -56,6 +56,9 @@ export const registerUser = async (email, password, isAdmin = false) => {
       };
     }
     
+    // Check if this is the first user BEFORE adding them
+    const isFirstUser = Object.keys(users).length === 0;
+    
     const userId = 'user-' + Date.now();
     users[email] = {
       uid: userId,
@@ -66,14 +69,16 @@ export const registerUser = async (email, password, isAdmin = false) => {
     
     await AsyncStorage.setItem('registeredUsers', JSON.stringify(users));
     
-    // Make first user Super Admin
-    const superAdminData = await AsyncStorage.getItem('superAdmins');
-    const superAdmins = superAdminData ? JSON.parse(superAdminData) : [];
-    
-    if (superAdmins.length === 0) {
-      superAdmins.push(email);
-      await AsyncStorage.setItem('superAdmins', JSON.stringify(superAdmins));
-      console.log(`✅ First user ${email} made Super Admin`);
+    // Make first user Super Admin (only if no users existed before)
+    if (isFirstUser) {
+      const superAdminData = await AsyncStorage.getItem('superAdmins');
+      const superAdmins = superAdminData ? JSON.parse(superAdminData) : [];
+      
+      if (!superAdmins.includes(email)) {
+        superAdmins.push(email);
+        await AsyncStorage.setItem('superAdmins', JSON.stringify(superAdmins));
+        console.log(`✅ First user ${email} made Super Admin`);
+      }
     }
     
     // Save admin status locally

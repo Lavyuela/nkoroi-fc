@@ -39,13 +39,12 @@ const AccountScreen = ({ navigation }) => {
               
               await AsyncStorage.setItem('adminUsers', JSON.stringify(admins));
               setAdminToggle(newAdminStatus);
-              setIsAdmin(newAdminStatus);
               
               Alert.alert(
                 'Success',
                 newAdminStatus 
-                  ? 'You now have administrator privileges!' 
-                  : 'Administrator privileges removed'
+                  ? 'You now have administrator privileges! Please logout and login again.' 
+                  : 'Administrator privileges removed. Please logout and login again.'
               );
             } catch (error) {
               Alert.alert('Error', 'Failed to update admin status');
@@ -67,8 +66,8 @@ const AccountScreen = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             await logoutUser();
-            setUser(null);
-            setIsAdmin(false);
+            await clearUserSession();
+            navigation.replace('Login');
           },
         },
       ]
