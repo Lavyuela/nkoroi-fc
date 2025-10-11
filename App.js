@@ -3,42 +3,24 @@ import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { requestNotificationPermission, getExpoPushToken, setupNotificationListeners } from './src/services/notificationService';
+import { requestNotificationPermission, setupNotificationListeners } from './src/services/firebaseService';
 
 export default function App() {
   useEffect(() => {
-    // Initialize notifications
+    // Initialize Firebase notifications
     const initNotifications = async () => {
-      const hasPermission = await requestNotificationPermission();
-      if (hasPermission) {
-        const token = await getExpoPushToken();
-        if (token) {
-          console.log('📱 Push token ready:', token);
-          // TODO: Send token to your backend to enable push notifications
-        }
+      const result = await requestNotificationPermission();
+      if (result.success) {
+        console.log('✅ Notifications enabled, FCM token:', result.token);
+      } else {
+        console.log('⚠️ Notification permission denied');
       }
       
-      // Setup listeners
-      const cleanup = setupNotificationListeners(
-        (notification) => {
-          // Handle notification received
-          console.log('Notification received in app:', notification);
-        },
-        (response) => {
-          // Handle notification tap
-          console.log('User tapped notification:', response);
-          // TODO: Navigate to relevant screen based on notification data
-        }
-      );
-      
-      return cleanup;
+      // Setup Firebase Cloud Messaging listeners
+      setupNotificationListeners();
     };
     
-    const cleanupPromise = initNotifications();
-    
-    return () => {
-      cleanupPromise.then(cleanup => cleanup && cleanup());
-    };
+    initNotifications();
   }, []);
 
   return (

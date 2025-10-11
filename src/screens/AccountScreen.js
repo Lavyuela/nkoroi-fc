@@ -206,8 +206,8 @@ const AccountScreen = ({ navigation }) => {
             <Divider />
             <List.Item
               title="Mode"
-              description="Offline Mode (Local Storage)"
-              left={props => <List.Icon {...props} icon="database" />}
+              description="Firebase Cloud Sync (Real-time)"
+              left={props => <List.Icon {...props} icon="cloud-sync" />}
             />
           </Card.Content>
         </Card>

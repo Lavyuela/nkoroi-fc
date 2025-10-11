@@ -231,6 +231,14 @@ export const createMatch = async (matchData) => {
     });
     
     console.log('✅ Match created:', matchRef.id);
+    
+    // Send notification to all fans
+    await sendNotificationToAllUsers(
+      '⚽ New Match!',
+      `${matchData.homeTeam} vs ${matchData.awayTeam}`,
+      { matchId: matchRef.id, type: 'new_match' }
+    );
+    
     return { success: true, matchId: matchRef.id };
   } catch (error) {
     console.error('Error creating match:', error);
@@ -290,6 +298,19 @@ export const updateMatch = async (matchId, updates) => {
     });
     
     console.log('✅ Match updated:', matchId);
+    
+    // If score was updated, send notification
+    if (updates.homeScore !== undefined || updates.awayScore !== undefined) {
+      const matchDoc = await firestore().collection('matches').doc(matchId).get();
+      const matchData = matchDoc.data();
+      
+      await sendNotificationToAllUsers(
+        '🔔 Score Update!',
+        `${matchData.homeTeam} ${updates.homeScore || matchData.homeScore} - ${updates.awayScore || matchData.awayScore} ${matchData.awayTeam}`,
+        { matchId, type: 'score_update' }
+      );
+    }
+    
     return { success: true };
   } catch (error) {
     console.error('Error updating match:', error);
@@ -341,6 +362,14 @@ export const createUpdate = async (updateData) => {
     });
     
     console.log('✅ Update created:', updateRef.id);
+    
+    // Send notification to all users
+    await sendNotificationToAllUsers(
+      '📢 Team Update!',
+      updateData.title || 'New update from Nkoroi FC',
+      { updateId: updateRef.id, type: 'team_update' }
+    );
+    
     return { success: true, updateId: updateRef.id };
   } catch (error) {
     console.error('Error creating update:', error);
@@ -409,12 +438,101 @@ export const setupNotificationListeners = () => {
   // Foreground messages
   messaging().onMessage(async (remoteMessage) => {
     console.log('📬 Foreground notification:', remoteMessage);
+    // You can show a local notification here
   });
 
   // Background messages
   messaging().setBackgroundMessageHandler(async (remoteMessage) => {
     console.log('📬 Background notification:', remoteMessage);
   });
+};
+
+export const sendNotificationToAllUsers = async (title, body, data = {}) => {
+  try {
+    // Get all user FCM tokens
+    const usersSnapshot = await firestore().collection('users').get();
+    const tokens = [];
+    
+    usersSnapshot.forEach(doc => {
+      const userData = doc.data();
+      if (userData.fcmToken) {
+        tokens.push(userData.fcmToken);
+      }
+    });
+    
+    if (tokens.length === 0) {
+      console.log('⚠️ No FCM tokens found');
+      return { success: false, error: 'No users to notify' };
+    }
+    
+    // Note: Sending notifications requires Firebase Cloud Functions
+    // For now, we'll save the notification to Firestore
+    // and users will see it when they open the app
+    
+    await firestore().collection('notifications').add({
+      title,
+      body,
+      data,
+      tokens,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+      sent: false,
+    });
+    
+    console.log(`✅ Notification queued for ${tokens.length} users`);
+    return { success: true, userCount: tokens.length };
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const sendNotificationToRole = async (role, title, body, data = {}) => {
+  try {
+    // Get users with specific role
+    const rolesSnapshot = await firestore()
+      .collection('roles')
+      .where('role', '==', role)
+      .get();
+    
+    const userIds = [];
+    rolesSnapshot.forEach(doc => {
+      userIds.push(doc.id);
+    });
+    
+    if (userIds.length === 0) {
+      return { success: false, error: `No users with role: ${role}` };
+    }
+    
+    // Get FCM tokens for these users
+    const tokens = [];
+    for (const userId of userIds) {
+      const userDoc = await firestore().collection('users').doc(userId).get();
+      if (userDoc.exists && userDoc.data().fcmToken) {
+        tokens.push(userDoc.data().fcmToken);
+      }
+    }
+    
+    if (tokens.length === 0) {
+      return { success: false, error: 'No FCM tokens found for role' };
+    }
+    
+    // Save notification to Firestore
+    await firestore().collection('notifications').add({
+      title,
+      body,
+      data,
+      role,
+      tokens,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+      sent: false,
+    });
+    
+    console.log(`✅ Notification queued for ${tokens.length} ${role}s`);
+    return { success: true, userCount: tokens.length };
+  } catch (error) {
+    console.error('Error sending notification to role:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 // ============================================
