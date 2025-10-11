@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Card, Avatar, List, Divider, Button, Appbar, Chip } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
-import { logoutUser } from '../services/firebase';
+import { logoutUser } from '../services/firebaseService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { USER_ROLES, getRoleDisplayName, getRoleColor } from '../services/userRoles';
 

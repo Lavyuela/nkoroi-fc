@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getUserRole, USER_ROLES, isSuperAdmin as checkIsSuperAdmin, isAdminOrAbove } from '../services/userRoles';
+import auth from '@react-native-firebase/auth';
+import { getUserRole } from '../services/firebaseService';
 
 const AuthContext = createContext();
 
@@ -14,71 +14,69 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [userRole, setUserRole] = useState(USER_ROLES.FAN);
+  const [userRole, setUserRole] = useState('fan');
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load saved user session on app start
-    loadUserSession();
+    // Listen to Firebase auth state changes
+    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+        });
+        
+        // Get user role from Firestore
+        const role = await getUserRole(firebaseUser.uid);
+        setUserRole(role);
+        setIsAdmin(role === 'admin' || role === 'super_admin');
+        setIsSuperAdmin(role === 'super_admin');
+        
+        console.log(`✅ User logged in: ${firebaseUser.email} (${role})`);
+      } else {
+        setUser(null);
+        setUserRole('fan');
+        setIsAdmin(false);
+        setIsSuperAdmin(false);
+      }
+      
+      setLoading(false);
+    });
+
+    return unsubscribe;
   }, []);
 
-  const loadUserSession = async () => {
-    try {
-      const savedUser = await AsyncStorage.getItem('currentUser');
-      
-      if (savedUser) {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-        
-        // Get user role
-        const role = await getUserRole(userData.email);
-        setUserRole(role);
-        
-        // Set admin flags
-        const isAdminUser = await isAdminOrAbove(userData.email);
-        const isSuperAdminUser = await checkIsSuperAdmin(userData.email);
-        
-        setIsAdmin(isAdminUser);
-        setIsSuperAdmin(isSuperAdminUser);
-      }
-    } catch (error) {
-      console.log('Error loading user session:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const saveUserSession = async (userData) => {
-    try {
-      await AsyncStorage.setItem('currentUser', JSON.stringify(userData));
-      setUser(userData);
-      
-      // Get and set user role
-      const role = await getUserRole(userData.email);
+    // Firebase handles session automatically
+    // Just update local state
+    setUser(userData);
+    
+    if (userData && userData.uid) {
+      const role = await getUserRole(userData.uid);
       setUserRole(role);
-      
-      // Set admin flags
-      const isAdminUser = await isAdminOrAbove(userData.email);
-      const isSuperAdminUser = await checkIsSuperAdmin(userData.email);
-      
-      setIsAdmin(isAdminUser);
-      setIsSuperAdmin(isSuperAdminUser);
-    } catch (error) {
-      console.log('Error saving user session:', error);
+      setIsAdmin(role === 'admin' || role === 'super_admin');
+      setIsSuperAdmin(role === 'super_admin');
     }
   };
 
   const clearUserSession = async () => {
-    try {
-      await AsyncStorage.removeItem('currentUser');
-      setUser(null);
-      setUserRole(USER_ROLES.FAN);
-      setIsAdmin(false);
-      setIsSuperAdmin(false);
-    } catch (error) {
-      console.log('Error clearing user session:', error);
+    // Firebase signOut is handled in firebaseService
+    setUser(null);
+    setUserRole('fan');
+    setIsAdmin(false);
+    setIsSuperAdmin(false);
+  };
+
+  const loadUserSession = async () => {
+    // Firebase handles this automatically via onAuthStateChanged
+    const currentUser = auth().currentUser;
+    if (currentUser) {
+      const role = await getUserRole(currentUser.uid);
+      setUserRole(role);
+      setIsAdmin(role === 'admin' || role === 'super_admin');
+      setIsSuperAdmin(role === 'super_admin');
     }
   };
 
@@ -88,12 +86,9 @@ export const AuthProvider = ({ children }) => {
     isAdmin,
     isSuperAdmin,
     loading,
-    setUser,
-    setIsAdmin,
-    setIsSuperAdmin,
     saveUserSession,
     clearUserSession,
-    loadUserSession, // Expose to refresh role after changes
+    loadUserSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

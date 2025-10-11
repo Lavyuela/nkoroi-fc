@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { TextInput, Button, Text, Card, Snackbar, Portal, Dialog } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
-import { loginUser } from '../services/firebase';
+import { loginUser } from '../services/firebaseService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }) => {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { TextInput, Button, Text, Card, Snackbar, Switch } from 'react-native-paper';
-import { registerUser } from '../services/firebase';
+import { registerUser } from '../services/firebaseService';
 import { useAuth } from '../context/AuthContext';
 
 const RegisterScreen = ({ navigation }) => {

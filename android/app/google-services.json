@@ -8,7 +8,7 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:690706398047:android:b990946497752a369dd94e",
+        "mobilesdk_app_id": "1:690706398047:android:78637ba4aad0be15dd94ea",
         "android_client_info": {
           "package_name": "com.nkoroifc.livescore"
         }
@@ -16,7 +16,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDDkwPxdA1CwqCdXmAQz79PrN6PSCDUWuc"
+          "current_key": "AIzaSyAPTHNla4bxbjOwPPRQHHHLvrFk3PKzDjI"
         }
       ],
       "services": {

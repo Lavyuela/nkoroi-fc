@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Animated } from 'react-native';
 import { Text, Card, FAB, Chip, Appbar, ActivityIndicator, Button } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
-import { subscribeToMatches, logoutUser } from '../services/firebase';
+import { subscribeToMatches, logoutUser } from '../services/firebaseService';
 
 const HomeScreen = ({ navigation }) => {
   const { user, isAdmin, isSuperAdmin, clearUserSession } = useAuth();

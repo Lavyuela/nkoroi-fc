@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert, RefreshControl } from 'react-native';
 import { Text, Card, Appbar, Avatar, Chip, IconButton, Searchbar, Menu, Button, Dialog, Portal } from 'react-native-paper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
+import { getAllUsers, updateUserRole, deleteUser as deleteUserFromFirebase } from '../services/firebaseService';
 
 const UserManagementScreen = ({ navigation }) => {
   const { user: currentUser, isSuperAdmin } = useAuth();
@@ -25,26 +25,16 @@ const UserManagementScreen = ({ navigation }) => {
 
   const loadUsers = async () => {
     try {
-      const usersData = await AsyncStorage.getItem('registeredUsers');
-      const adminData = await AsyncStorage.getItem('adminUsers');
-      const superAdminData = await AsyncStorage.getItem('superAdmins');
+      const usersList = await getAllUsers();
       
-      const usersObj = usersData ? JSON.parse(usersData) : {};
-      const adminEmails = adminData ? JSON.parse(adminData) : [];
-      const superAdminEmails = superAdminData ? JSON.parse(superAdminData) : [];
-
-      const usersList = Object.entries(usersObj).map(([email, userData]) => ({
-        email,
-        ...userData,
-        isSuperAdmin: superAdminEmails.includes(email),
-        isAdmin: adminEmails.includes(email),
-        isCurrentUser: email === currentUser?.email,
-        role: superAdminEmails.includes(email) ? 'super_admin' : 
-              adminEmails.includes(email) ? 'admin' : 'fan',
+      // Add isCurrentUser flag
+      const usersWithFlags = usersList.map(user => ({
+        ...user,
+        isCurrentUser: user.uid === currentUser?.uid,
       }));
 
       // Sort: current user first, then super admins, then admins, then fans
-      usersList.sort((a, b) => {
+      usersWithFlags.sort((a, b) => {
         if (a.isCurrentUser) return -1;
         if (b.isCurrentUser) return 1;
         if (a.isSuperAdmin && !b.isSuperAdmin) return -1;
@@ -54,8 +44,8 @@ const UserManagementScreen = ({ navigation }) => {
         return a.email.localeCompare(b.email);
       });
 
-      setUsers(usersList);
-      setFilteredUsers(usersList);
+      setUsers(usersWithFlags);
+      setFilteredUsers(usersWithFlags);
       setRefreshing(false);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -103,14 +93,12 @@ const UserManagementScreen = ({ navigation }) => {
 
   const handleMakeSuperAdmin = async (user) => {
     try {
-      const superAdminData = await AsyncStorage.getItem('superAdmins');
-      const superAdminEmails = superAdminData ? JSON.parse(superAdminData) : [];
-      
-      if (!superAdminEmails.includes(user.email)) {
-        superAdminEmails.push(user.email);
-        await AsyncStorage.setItem('superAdmins', JSON.stringify(superAdminEmails));
+      const result = await updateUserRole(user.uid, 'super_admin');
+      if (result.success) {
         Alert.alert('Success', `${user.email} is now a Super Admin with full system access`);
         loadUsers();
+      } else {
+        Alert.alert('Error', result.error || 'Failed to make user super admin');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to make user super admin');
@@ -125,13 +113,13 @@ const UserManagementScreen = ({ navigation }) => {
         return;
       }
 
-      const superAdminData = await AsyncStorage.getItem('superAdmins');
-      const superAdminEmails = superAdminData ? JSON.parse(superAdminData) : [];
-      
-      const updatedSuperAdmins = superAdminEmails.filter(email => email !== user.email);
-      await AsyncStorage.setItem('superAdmins', JSON.stringify(updatedSuperAdmins));
-      Alert.alert('Success', `${user.email} is no longer a Super Admin`);
-      loadUsers();
+      const result = await updateUserRole(user.uid, 'admin');
+      if (result.success) {
+        Alert.alert('Success', `${user.email} is no longer a Super Admin`);
+        loadUsers();
+      } else {
+        Alert.alert('Error', result.error || 'Failed to remove super admin access');
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to remove super admin access');
     }
@@ -140,14 +128,12 @@ const UserManagementScreen = ({ navigation }) => {
 
   const handleMakeAdmin = async (user) => {
     try {
-      const adminData = await AsyncStorage.getItem('adminUsers');
-      const adminEmails = adminData ? JSON.parse(adminData) : [];
-      
-      if (!adminEmails.includes(user.email)) {
-        adminEmails.push(user.email);
-        await AsyncStorage.setItem('adminUsers', JSON.stringify(adminEmails));
+      const result = await updateUserRole(user.uid, 'admin');
+      if (result.success) {
         Alert.alert('Success', `${user.email} is now an Admin`);
         loadUsers();
+      } else {
+        Alert.alert('Error', result.error || 'Failed to make user admin');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to make user admin');
@@ -162,13 +148,13 @@ const UserManagementScreen = ({ navigation }) => {
         return;
       }
 
-      const adminData = await AsyncStorage.getItem('adminUsers');
-      const adminEmails = adminData ? JSON.parse(adminData) : [];
-      
-      const updatedAdmins = adminEmails.filter(email => email !== user.email);
-      await AsyncStorage.setItem('adminUsers', JSON.stringify(updatedAdmins));
-      Alert.alert('Success', `${user.email} is no longer an admin`);
-      loadUsers();
+      const result = await updateUserRole(user.uid, 'fan');
+      if (result.success) {
+        Alert.alert('Success', `${user.email} is no longer an admin`);
+        loadUsers();
+      } else {
+        Alert.alert('Error', result.error || 'Failed to remove admin access');
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to remove admin access');
     }
@@ -182,30 +168,13 @@ const UserManagementScreen = ({ navigation }) => {
         return;
       }
 
-      const usersData = await AsyncStorage.getItem('registeredUsers');
-      const usersObj = usersData ? JSON.parse(usersData) : {};
-      
-      delete usersObj[user.email];
-      await AsyncStorage.setItem('registeredUsers', JSON.stringify(usersObj));
-
-      // Remove from super admin list if present
-      if (user.isSuperAdmin) {
-        const superAdminData = await AsyncStorage.getItem('superAdmins');
-        const superAdminEmails = superAdminData ? JSON.parse(superAdminData) : [];
-        const updatedSuperAdmins = superAdminEmails.filter(email => email !== user.email);
-        await AsyncStorage.setItem('superAdmins', JSON.stringify(updatedSuperAdmins));
+      const result = await deleteUserFromFirebase(user.uid);
+      if (result.success) {
+        Alert.alert('Success', `User ${user.email} has been deleted`);
+        loadUsers();
+      } else {
+        Alert.alert('Error', result.error || 'Failed to delete user');
       }
-
-      // Remove from admin list if present
-      if (user.isAdmin) {
-        const adminData = await AsyncStorage.getItem('adminUsers');
-        const adminEmails = adminData ? JSON.parse(adminData) : [];
-        const updatedAdmins = adminEmails.filter(email => email !== user.email);
-        await AsyncStorage.setItem('adminUsers', JSON.stringify(updatedAdmins));
-      }
-
-      Alert.alert('Success', `User ${user.email} has been deleted`);
-      loadUsers();
     } catch (error) {
       Alert.alert('Error', 'Failed to delete user');
     }
