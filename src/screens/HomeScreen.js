@@ -152,6 +152,15 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.adminQuickActions}>
             <Button
               mode="outlined"
+              onPress={() => navigation.navigate('AdminDashboard')}
+              icon="view-dashboard"
+              style={styles.quickActionButton}
+              compact
+            >
+              Dashboard
+            </Button>
+            <Button
+              mode="outlined"
               onPress={() => navigation.navigate('CreateMatch')}
               icon="plus"
               style={styles.quickActionButton}

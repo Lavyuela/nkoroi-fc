@@ -14,6 +14,10 @@ import TeamStatsScreen from '../screens/TeamStatsScreen';
 import CreateUpdateScreen from '../screens/CreateUpdateScreen';
 import AccountScreen from '../screens/AccountScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import AdminDashboardScreen from '../screens/AdminDashboardScreen';
+import UserManagementScreen from '../screens/UserManagementScreen';
+import AnalyticsScreen from '../screens/AnalyticsScreen';
+import TestNotificationScreen from '../screens/TestNotificationScreen';
 
 const Stack = createStackNavigator();
 
@@ -49,6 +53,10 @@ const AppNavigator = () => {
           <Stack.Screen name="CreateUpdate" component={CreateUpdateScreen} />
           <Stack.Screen name="Account" component={AccountScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+          <Stack.Screen name="UserManagement" component={UserManagementScreen} />
+          <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+          <Stack.Screen name="TestNotification" component={TestNotificationScreen} />
         </>
       )}
     </Stack.Navigator>
