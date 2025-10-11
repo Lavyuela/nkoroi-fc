@@ -27,13 +27,8 @@ const LoginScreen = ({ navigation }) => {
     const result = await loginUser(email, password);
     
     if (result.success) {
-      // Check if user is in admin list
-      const adminUsers = await AsyncStorage.getItem('adminUsers');
-      const admins = adminUsers ? JSON.parse(adminUsers) : [];
-      const isUserAdmin = admins.includes(email);
-      
-      // Save session - user stays logged in
-      await saveUserSession(result.user, isUserAdmin);
+      // Save session - role will be loaded automatically in AuthContext
+      await saveUserSession(result.user);
       
       setLoading(false);
     } else {

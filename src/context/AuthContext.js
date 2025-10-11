@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getUserRole, USER_ROLES, isSuperAdmin, isAdminOrAbove } from '../services/userRoles';
+import { getUserRole, USER_ROLES, isSuperAdmin as checkIsSuperAdmin, isAdminOrAbove } from '../services/userRoles';
 
 const AuthContext = createContext();
 
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
         
         // Set admin flags
         const isAdminUser = await isAdminOrAbove(userData.email);
-        const isSuperAdminUser = await isSuperAdmin(userData.email);
+        const isSuperAdminUser = await checkIsSuperAdmin(userData.email);
         
         setIsAdmin(isAdminUser);
         setIsSuperAdmin(isSuperAdminUser);
@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }) => {
       
       // Set admin flags
       const isAdminUser = await isAdminOrAbove(userData.email);
-      const isSuperAdminUser = await isSuperAdmin(userData.email);
+      const isSuperAdminUser = await checkIsSuperAdmin(userData.email);
       
       setIsAdmin(isAdminUser);
       setIsSuperAdmin(isSuperAdminUser);

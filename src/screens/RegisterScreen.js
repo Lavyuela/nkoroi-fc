@@ -35,8 +35,8 @@ const RegisterScreen = ({ navigation }) => {
     setLoading(false);
 
     if (result.success) {
-      // Auto-login after registration
-      await saveUserSession(result.user, isAdmin);
+      // Auto-login after registration - role will be loaded automatically
+      await saveUserSession(result.user);
     } else {
       setError(result.error);
     }
