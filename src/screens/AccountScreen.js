@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Card, List, Divider, Appbar, Avatar, Button, Switch } from 'react-native-paper';
+import { Text, Card, Avatar, List, Divider, Button, Appbar, Chip } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { logoutUser } from '../services/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { USER_ROLES, getRoleDisplayName, getRoleColor } from '../services/userRoles';
 
 const AccountScreen = ({ navigation }) => {
-  const { user, isAdmin, setUser, setIsAdmin } = useAuth();
+  const { user, userRole, isAdmin, isSuperAdmin, clearUserSession } = useAuth();
   const [adminToggle, setAdminToggle] = useState(isAdmin);
 
   const toggleAdminStatus = async () => {
@@ -96,16 +97,14 @@ const AccountScreen = ({ navigation }) => {
               style={styles.avatar}
             />
             <Text style={styles.email}>{user?.email || 'Guest'}</Text>
-            {isAdmin && (
-              <View style={styles.adminBadge}>
-                <Text style={styles.adminBadgeText}>👑 Admin</Text>
-              </View>
-            )}
-            {!isAdmin && (
-              <View style={styles.fanBadge}>
-                <Text style={styles.fanBadgeText}>⚽ Fan</Text>
-              </View>
-            )}
+            <Chip 
+              mode="flat" 
+              icon={isSuperAdmin ? 'shield-crown' : isAdmin ? 'shield-account' : 'account'}
+              style={[styles.roleChip, { backgroundColor: getRoleColor(userRole) }]}
+              textStyle={styles.roleChipText}
+            >
+              {isSuperAdmin ? '👑 Super Admin' : isAdmin ? '🛡️ Admin' : '⚽ Fan'}
+            </Chip>
           </Card.Content>
         </Card>
 
@@ -121,8 +120,8 @@ const AccountScreen = ({ navigation }) => {
             <Divider />
             <List.Item
               title="Account Type"
-              description={adminToggle ? 'Administrator' : 'Team Member / Fan'}
-              left={props => <List.Icon {...props} icon="account-circle" />}
+              description={getRoleDisplayName(userRole)}
+              left={props => <List.Icon {...props} icon={isSuperAdmin ? 'shield-crown' : isAdmin ? 'shield-account' : 'account'} />}
             />
             <Divider />
             {isAdmin && (
@@ -313,6 +312,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 10,
+  },
+  roleChip: {
+    marginTop: 10,
+  },
+  roleChipText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   adminBadge: {
     backgroundColor: '#ffd700',
