@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { Text, Card, Appbar, Chip, Avatar, Divider, Button } from 'react-native-paper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
+import firestore from '@react-native-firebase/firestore';
 
 const AdminDashboardScreen = ({ navigation }) => {
   const { isSuperAdmin } = useAuth();
@@ -27,28 +27,25 @@ const AdminDashboardScreen = ({ navigation }) => {
 
   const loadDashboardData = async () => {
     try {
-      // Load users
-      const usersData = await AsyncStorage.getItem('registeredUsers');
-      const users = usersData ? JSON.parse(usersData) : {};
-      const totalUsers = Object.keys(users).length;
+      // Load users from Firebase
+      const usersSnapshot = await firestore().collection('users').get();
+      const totalUsers = usersSnapshot.size;
 
-      // Load matches
-      const matchesData = await AsyncStorage.getItem('demoMatches');
-      const matches = matchesData ? JSON.parse(matchesData) : [];
+      // Load matches from Firebase
+      const matchesSnapshot = await firestore().collection('matches').get();
+      const matches = matchesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const totalMatches = matches.length;
       const liveMatches = matches.filter(m => m.status === 'live').length;
       const upcomingMatches = matches.filter(m => m.status === 'upcoming').length;
       const finishedMatches = matches.filter(m => m.status === 'finished').length;
 
-      // Load predictions
-      const predictionsData = await AsyncStorage.getItem('userPredictions');
-      const predictions = predictionsData ? JSON.parse(predictionsData) : {};
-      const totalPredictions = Object.keys(predictions).length;
+      // Load predictions from Firebase
+      const predictionsSnapshot = await firestore().collection('predictions').get();
+      const totalPredictions = predictionsSnapshot.size;
 
-      // Load favorites
-      const favoritesData = await AsyncStorage.getItem('favoriteMatches');
-      const favorites = favoritesData ? JSON.parse(favoritesData) : [];
-      const totalFavorites = favorites.length;
+      // Load favorites from Firebase
+      const favoritesSnapshot = await firestore().collection('favorites').get();
+      const totalFavorites = favoritesSnapshot.size;
 
       setStats({
         totalUsers,

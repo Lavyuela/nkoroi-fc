@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text, Card, FAB, Appbar, ActivityIndicator, Chip } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import firestore from '@react-native-firebase/firestore';
 
 const TeamUpdatesScreen = ({ navigation }) => {
   const { isAdmin } = useAuth();
@@ -16,34 +16,24 @@ const TeamUpdatesScreen = ({ navigation }) => {
 
   const loadUpdates = async () => {
     try {
-      const savedUpdates = await AsyncStorage.getItem('teamUpdates');
-      if (savedUpdates) {
-        const updatesData = JSON.parse(savedUpdates);
-        setUpdates(updatesData.sort((a, b) => b.timestamp - a.timestamp));
-      } else {
-        // Initialize with sample updates
-        const sampleUpdates = [
-          {
-            id: '1',
-            title: 'Welcome to Nkoroi FC! ⚽',
-            content: 'Stay tuned for the latest team news, match updates, and announcements.',
-            type: 'announcement',
-            timestamp: Date.now(),
-          },
-          {
-            id: '2',
-            title: 'Training Schedule Updated 📅',
-            content: 'Team training sessions will be held every Tuesday and Thursday at 5:00 PM.',
-            type: 'training',
-            timestamp: Date.now() - 86400000,
-          },
-        ];
-        await AsyncStorage.setItem('teamUpdates', JSON.stringify(sampleUpdates));
-        setUpdates(sampleUpdates);
-      }
+      // Real-time listener for updates
+      const unsubscribe = firestore()
+        .collection('updates')
+        .orderBy('createdAt', 'desc')
+        .onSnapshot((snapshot) => {
+          const updatesData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            timestamp: doc.data().createdAt?.toMillis() || Date.now(),
+          }));
+          setUpdates(updatesData);
+          setLoading(false);
+          setRefreshing(false);
+        });
+      
+      return unsubscribe;
     } catch (error) {
       console.log('Error loading updates:', error);
-    } finally {
       setLoading(false);
       setRefreshing(false);
     }
