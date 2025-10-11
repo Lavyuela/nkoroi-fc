@@ -246,10 +246,29 @@ export const createMatch = async (matchData) => {
   }
 };
 
+export const getMatch = async (matchId) => {
+  try {
+    const matchDoc = await firestore().collection('matches').doc(matchId).get();
+    if (matchDoc.exists) {
+      return {
+        success: true,
+        match: {
+          id: matchDoc.id,
+          ...matchDoc.data(),
+        },
+      };
+    }
+    return { success: false, error: 'Match not found' };
+  } catch (error) {
+    console.error('Error getting match:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const subscribeToMatches = (callback) => {
   return firestore()
     .collection('matches')
-    .orderBy('date', 'desc')
+    .orderBy('createdAt', 'desc')
     .onSnapshot(
       (snapshot) => {
         const matches = [];
@@ -259,10 +278,11 @@ export const subscribeToMatches = (callback) => {
             ...doc.data(),
           });
         });
+        console.log(`✅ Loaded ${matches.length} matches from Firebase`);
         callback(matches);
       },
       (error) => {
-        console.error('Error subscribing to matches:', error);
+        console.error('❌ Error subscribing to matches:', error);
         callback([]);
       }
     );
@@ -531,6 +551,9 @@ export const createUpdate = async (updateData) => {
     return { success: false, error: error.message };
   }
 };
+
+// Alias for compatibility
+export const createTeamUpdate = createUpdate;
 
 export const subscribeToUpdates = (callback) => {
   return firestore()

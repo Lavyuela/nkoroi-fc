@@ -513,7 +513,8 @@ const styles = StyleSheet.create({
     height: 24,
   },
   chipText: {
-    fontSize: 10,
+    fontSize: 12,
+    fontWeight: 'bold',
     color: '#fff',
   },
   userDate: {
