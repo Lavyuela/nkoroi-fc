@@ -1,11 +1,11 @@
-// Push Notification Service - Firebase Cloud Messaging (FCM)
-import messaging from '@react-native-firebase/messaging';
+// Push Notification Service - Firebase Cloud Messaging
 import * as Notifications from 'expo-notifications';
+import messaging from '@react-native-firebase/messaging';
 import { Platform } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 
-// Configure notification behavior for foreground notifications
+// Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -15,42 +15,37 @@ Notifications.setNotificationHandler({
 });
 
 /**
- * Register device for Expo Push Notifications and save token to Firestore
+ * Register device for FCM push notifications
  */
 export const registerForPushNotifications = async () => {
   try {
-    // Request notification permission
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    
-    if (finalStatus !== 'granted') {
+    // Request FCM permission
+    const authStatus = await messaging().requestPermission();
+    const enabled =
+      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+    if (!enabled) {
       console.log('⚠️ Push notification permission denied');
       return { success: false, error: 'Permission denied' };
     }
 
-    // Get Expo Push Token
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: '7f3faf6f-5c89-4a7b-8bd5-03e48f0c6098', // From app.json
-    });
-    
-    const expoPushToken = tokenData.data;
-    console.log('✅ Expo Push Token:', expoPushToken);
+    console.log('✅ FCM permission granted');
 
-    // Save token to user's Firestore document
+    // Get FCM token
+    const fcmToken = await messaging().getToken();
+    console.log('✅ FCM Token:', fcmToken);
+
+    // Save FCM token to Firestore
     const currentUser = auth().currentUser;
     if (currentUser) {
       await firestore().collection('users').doc(currentUser.uid).set({
-        expoPushToken,
-        expoPushTokenUpdatedAt: firestore.FieldValue.serverTimestamp(),
+        fcmToken,
+        fcmTokenUpdatedAt: firestore.FieldValue.serverTimestamp(),
         platform: Platform.OS,
       }, { merge: true });
       
-      console.log('✅ Expo Push token saved to Firestore');
+      console.log('✅ FCM token saved to Firestore');
     }
 
     // Configure notification channel for Android
@@ -62,9 +57,11 @@ export const registerForPushNotifications = async () => {
         lightColor: '#4FC3F7',
         sound: 'default',
       });
+      
+      console.log('✅ Android notification channel configured');
     }
 
-    return { success: true, token: expoPushToken };
+    return { success: true, token: fcmToken };
   } catch (error) {
     console.error('Error registering for push notifications:', error);
     return { success: false, error: error.message };
@@ -72,69 +69,29 @@ export const registerForPushNotifications = async () => {
 };
 
 /**
- * Send push notification to all users via Expo Push Notification Service
- * This works even when the app is CLOSED!
+ * Send notification to all users
+ * Uses Firestore as message queue - each device listens for new notifications
  */
 export const sendPushNotificationToAllUsers = async (title, body, data = {}) => {
   try {
-    // Get all users with Expo Push Tokens
-    const usersSnapshot = await firestore().collection('users').get();
-    const expoPushTokens = [];
-    
-    usersSnapshot.forEach(doc => {
-      const userData = doc.data();
-      if (userData.expoPushToken) {
-        expoPushTokens.push(userData.expoPushToken);
-      }
-    });
-
-    if (expoPushTokens.length === 0) {
-      console.log('⚠️ No Expo Push tokens found');
-      return { success: false, error: 'No users to notify' };
-    }
-
-    console.log(`📤 Sending push notification to ${expoPushTokens.length} devices...`);
-
-    // Prepare messages for Expo Push API
-    const messages = expoPushTokens.map(token => ({
-      to: token,
-      sound: 'default',
-      title: title,
-      body: body,
-      data: data,
-      priority: 'high',
-      channelId: 'default',
-    }));
-
-    // Send to Expo Push Notification Service
-    const response = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Accept-Encoding': 'gzip, deflate',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(messages),
-    });
-
-    const result = await response.json();
-    console.log('✅ Expo Push API response:', result);
-
-    // Save notification to Firestore for history
-    await firestore().collection('notifications').add({
+    // Save notification to Firestore
+    // All devices are listening to this collection and will show the notification
+    const notificationDoc = await firestore().collection('notifications').add({
       title,
       body,
       data,
       createdAt: firestore.FieldValue.serverTimestamp(),
-      sentTo: expoPushTokens.length,
       read: false,
+      type: 'broadcast',
     });
 
-    console.log(`✅ Push notifications sent to ${expoPushTokens.length} devices!`);
+    console.log(`✅ Notification saved to Firestore: ${notificationDoc.id}`);
+    console.log(`📢 Title: ${title}`);
+    console.log(`📢 Body: ${body}`);
 
-    return { success: true, sentTo: expoPushTokens.length };
+    return { success: true, notificationId: notificationDoc.id };
   } catch (error) {
-    console.error('Error sending push notification:', error);
+    console.error('Error sending notification:', error);
     return { success: false, error: error.message };
   }
 };

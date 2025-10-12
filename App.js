@@ -4,7 +4,6 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { registerForPushNotifications, setupPushNotificationListeners } from './src/services/pushNotificationService';
-import messaging from '@react-native-firebase/messaging';
 import firestore from '@react-native-firebase/firestore';
 import * as Notifications from 'expo-notifications';
 
@@ -14,7 +13,7 @@ export default function App() {
     const initPushNotifications = async () => {
       const result = await registerForPushNotifications();
       if (result.success) {
-        console.log('✅ Push notifications enabled:', result.token);
+        console.log('✅ Push notifications enabled');
       } else {
         console.log('⚠️ Push notifications failed:', result.error);
       }
@@ -25,7 +24,8 @@ export default function App() {
     // Setup listeners for when user taps notifications
     const cleanup = setupPushNotificationListeners();
     
-    // Listen for new notifications in Firestore and show them
+    // Listen for new notifications in Firestore
+    // This works when app is OPEN (foreground or background)
     let lastNotificationTime = Date.now();
     const unsubscribe = firestore()
       .collection('notifications')
@@ -48,7 +48,7 @@ export default function App() {
                   priority: Notifications.AndroidNotificationPriority.MAX,
                   vibrate: [0, 250, 250, 250],
                 },
-                trigger: null, // Show immediately
+                trigger: null,
               });
               
               console.log('📬 Notification shown:', notification.title);
@@ -57,29 +57,9 @@ export default function App() {
         });
       });
     
-    // Handle foreground FCM messages
-    const unsubscribeFCM = messaging().onMessage(async remoteMessage => {
-      console.log('📬 FCM message received:', remoteMessage);
-      
-      // Show local notification
-      if (remoteMessage.notification) {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: remoteMessage.notification.title,
-            body: remoteMessage.notification.body,
-            data: remoteMessage.data || {},
-            sound: true,
-            priority: Notifications.AndroidNotificationPriority.MAX,
-          },
-          trigger: null,
-        });
-      }
-    });
-    
     return () => {
       cleanup();
       unsubscribe();
-      unsubscribeFCM();
     };
   }, []);
 
