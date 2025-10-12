@@ -32,7 +32,8 @@
       "useNextNotificationsApi": true
     },
     "plugins": [
-      "expo-notifications"
+      "expo-notifications",
+      "@react-native-firebase/app"
     ],
     "extra": {
       "eas": {
