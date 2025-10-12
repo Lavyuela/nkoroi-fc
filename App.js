@@ -3,7 +3,6 @@ import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { registerForPushNotifications, setupPushNotificationListeners } from './src/services/pushNotificationService';
 import firestore from '@react-native-firebase/firestore';
 import * as Notifications from 'expo-notifications';
 
@@ -18,23 +17,23 @@ Notifications.setNotificationHandler({
 
 export default function App() {
   useEffect(() => {
-    // Register for push notifications
-    const initPushNotifications = async () => {
-      const result = await registerForPushNotifications();
-      if (result.success) {
-        console.log('✅ Push notifications enabled');
-      } else {
-        console.log('⚠️ Push notifications failed:', result.error);
+    // Request notification permission
+    const setupNotifications = async () => {
+      try {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status === 'granted') {
+          console.log('✅ Notification permission granted');
+        } else {
+          console.log('⚠️ Notification permission denied');
+        }
+      } catch (error) {
+        console.log('⚠️ Error requesting permission:', error);
       }
     };
     
-    initPushNotifications();
+    setupNotifications();
     
-    // Setup listeners for when user taps notifications
-    const cleanup = setupPushNotificationListeners();
-    
-    // Listen for new notifications in Firestore
-    // This shows LOCAL notifications when app is OPEN (foreground or background)
+    // Listen for new notifications in Firestore - SIMPLE & RELIABLE
     let lastNotificationTime = Date.now();
     const unsubscribe = firestore()
       .collection('notifications')
@@ -50,10 +49,10 @@ export default function App() {
             
             // Only show notifications created after app started
             if (notificationTime > lastNotificationTime) {
-              console.log('📬 New notification detected:', notification.title);
+              console.log('📬 New notification:', notification.title);
               
               try {
-                // Show local notification using Expo Notifications
+                // Show local notification
                 await Notifications.scheduleNotificationAsync({
                   content: {
                     title: notification.title || 'New Update',
@@ -62,10 +61,10 @@ export default function App() {
                     sound: 'default',
                     priority: Notifications.AndroidNotificationPriority.MAX,
                   },
-                  trigger: null, // Show immediately
+                  trigger: null,
                 });
                 
-                console.log('✅ Local notification displayed');
+                console.log('✅ Notification shown');
               } catch (error) {
                 console.error('❌ Error showing notification:', error);
               }
@@ -77,7 +76,6 @@ export default function App() {
       });
     
     return () => {
-      cleanup();
       unsubscribe();
     };
   }, []);

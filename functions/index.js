@@ -1,17 +1,18 @@
 /**
  * Firebase Cloud Functions for Nkoroi FC
- * Sends push notifications using Firebase Cloud Messaging (FCM) via Admin SDK
+ * Simple notification system - no push notifications needed
+ * Notifications are shown via Firestore listeners when app is open
  */
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin (uses service account automatically on Cloud Functions)
+// Initialize Firebase Admin
 admin.initializeApp();
 
 /**
  * Trigger: When a new notification is created in Firestore
- * Action: Send FCM push notification to all users with FCM tokens
+ * Action: Just log it - notifications are shown by Firestore listeners in the app
  */
 exports.sendNotification = functions.firestore
   .document('notifications/{notificationId}')
@@ -23,73 +24,7 @@ exports.sendNotification = functions.firestore
       console.log('📬 New notification created:', notificationId);
       console.log('📢 Title:', notification.title);
       console.log('📢 Body:', notification.body);
-      
-      // Get all users with FCM tokens
-      const usersSnapshot = await admin.firestore().collection('users').get();
-      const fcmTokens = [];
-      
-      console.log(`📊 Checking ${usersSnapshot.size} users for FCM tokens...`);
-      
-      usersSnapshot.forEach(doc => {
-        const userData = doc.data();
-        if (userData.fcmToken) {
-          fcmTokens.push(userData.fcmToken);
-          console.log(`✅ Found FCM token for user ${doc.id}`);
-        } else {
-          console.log(`⚠️ User ${doc.id} has no FCM token`);
-        }
-      });
-      
-      if (fcmTokens.length === 0) {
-        console.log('❌ No FCM tokens found in database');
-        console.log('💡 Users need to open the app to register for notifications');
-        return null;
-      }
-      
-      console.log(`📤 Sending FCM notification to ${fcmTokens.length} devices via Admin SDK...`);
-      
-      // Prepare FCM message using Admin SDK
-      const message = {
-        notification: {
-          title: notification.title,
-          body: notification.body,
-        },
-        data: notification.data || {},
-        android: {
-          priority: 'HIGH',
-          notification: {
-            sound: 'default',
-            channelId: 'default',
-          },
-        },
-      };
-      
-      // Send to multiple devices using sendEachForMulticast
-      const multicastMessage = {
-        ...message,
-        tokens: fcmTokens,
-      };
-      
-      const response = await admin.messaging().sendEachForMulticast(multicastMessage);
-      
-      console.log(`📊 FCM Response Summary:`);
-      console.log(`   ✅ Successfully sent: ${response.successCount}`);
-      console.log(`   ❌ Failed to send: ${response.failureCount}`);
-      
-      // Log individual results
-      response.responses.forEach((resp, index) => {
-        if (resp.success) {
-          console.log(`✅ Message sent successfully to device ${index + 1}`);
-        } else {
-          console.error(`❌ Error sending to device ${index + 1}:`, resp.error?.code, resp.error?.message);
-          
-          // Handle invalid tokens
-          if (resp.error?.code === 'messaging/invalid-registration-token' ||
-              resp.error?.code === 'messaging/registration-token-not-registered') {
-            console.log(`🗑️ Token ${index + 1} is invalid and should be removed from database`);
-          }
-        }
-      });
+      console.log('✅ Notification will be shown to users with app open');
       
       return null;
     } catch (error) {
