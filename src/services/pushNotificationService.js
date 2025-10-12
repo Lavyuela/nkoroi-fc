@@ -1,6 +1,6 @@
-// Push Notification Service - Expo Push Notifications
+// Push Notification Service - React Native Firebase FCM
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+import messaging from '@react-native-firebase/messaging';
 import { Platform } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
@@ -15,52 +15,56 @@ Notifications.setNotificationHandler({
 });
 
 /**
- * Register device for Expo Push Notifications
+ * Register device for FCM Push Notifications
  */
 export const registerForPushNotifications = async () => {
   try {
-    if (!Device.isDevice) {
-      console.log('⚠️ Must use physical device for Push Notifications');
-      return { success: false, error: 'Must use physical device' };
-    }
+    console.log('🔔 Starting FCM registration...');
 
-    // Request permission
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    
-    if (finalStatus !== 'granted') {
-      console.log('⚠️ Push notification permission denied');
+    // Request FCM permission
+    const authStatus = await messaging().requestPermission();
+    const enabled =
+      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+    if (!enabled) {
+      console.log('⚠️ FCM permission denied');
       return { success: false, error: 'Permission denied' };
     }
 
-    console.log('✅ Notification permission granted');
+    console.log('✅ FCM permission granted');
 
-    // Get Expo Push Token
-    const token = await Notifications.getExpoPushTokenAsync({
-      projectId: '7f3faf6f-5c89-4a7b-8bd5-03e48f0c6098',
-    });
-    const expoPushToken = token.data;
+    // Also request local notification permission (for foreground notifications)
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') {
+      console.log('⚠️ Local notification permission denied');
+    } else {
+      console.log('✅ Local notification permission granted');
+    }
+
+    // Get FCM token
+    const fcmToken = await messaging().getToken();
     
-    console.log('✅ Expo Push Token:', expoPushToken);
+    if (!fcmToken) {
+      console.error('❌ FCM token is null');
+      return { success: false, error: 'FCM token is null' };
+    }
+    
+    console.log('✅ FCM Token obtained:', fcmToken.substring(0, 50) + '...');
 
     // Save token to Firestore
     const currentUser = auth().currentUser;
     if (currentUser) {
       await firestore().collection('users').doc(currentUser.uid).set({
-        expoPushToken,
-        pushTokenUpdatedAt: firestore.FieldValue.serverTimestamp(),
+        fcmToken,
+        fcmTokenUpdatedAt: firestore.FieldValue.serverTimestamp(),
         platform: Platform.OS,
         deviceInfo: {
           lastUpdated: new Date().toISOString(),
         }
       }, { merge: true });
       
-      console.log('✅ Expo Push token saved to Firestore');
+      console.log('✅ FCM token saved to Firestore for user:', currentUser.uid);
     } else {
       console.log('⚠️ No current user, token not saved');
     }
@@ -78,7 +82,20 @@ export const registerForPushNotifications = async () => {
       console.log('✅ Android notification channel configured');
     }
 
-    return { success: true, token: expoPushToken };
+    // Listen for token refresh
+    messaging().onTokenRefresh(async (newToken) => {
+      console.log('🔄 FCM token refreshed');
+      const user = auth().currentUser;
+      if (user) {
+        await firestore().collection('users').doc(user.uid).update({
+          fcmToken: newToken,
+          fcmTokenUpdatedAt: firestore.FieldValue.serverTimestamp(),
+        });
+        console.log('✅ New FCM token saved');
+      }
+    });
+
+    return { success: true, token: fcmToken };
   } catch (error) {
     console.error('❌ Error registering for push notifications:', error);
     return { success: false, error: error.message };

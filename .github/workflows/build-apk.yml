@@ -30,6 +30,13 @@ jobs:
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
       
+      - name: 🔑 Restore google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          echo "$GOOGLE_SERVICES_JSON" | base64 --decode > android/app/google-services.json
+          echo "✅ google-services.json restored"
+      
       - name: 🔧 Make gradlew executable
         run: chmod +x android/gradlew
       

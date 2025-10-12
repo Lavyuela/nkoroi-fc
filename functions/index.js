@@ -1,13 +1,12 @@
 /**
  * Firebase Cloud Functions for Nkoroi FC
- * Sends push notifications using Expo Push Notification Service
+ * Sends push notifications using Firebase Cloud Messaging (FCM) via Admin SDK
  */
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const fetch = require('node-fetch');
 
-// Initialize Firebase Admin
+// Initialize Firebase Admin (uses service account automatically on Cloud Functions)
 admin.initializeApp();
 
 /**
@@ -25,76 +24,72 @@ exports.sendNotification = functions.firestore
       console.log('📢 Title:', notification.title);
       console.log('📢 Body:', notification.body);
       
-      // Get all users with Expo Push Tokens
+      // Get all users with FCM tokens
       const usersSnapshot = await admin.firestore().collection('users').get();
-      const expoPushTokens = [];
+      const fcmTokens = [];
       
-      console.log(`📊 Checking ${usersSnapshot.size} users for push tokens...`);
+      console.log(`📊 Checking ${usersSnapshot.size} users for FCM tokens...`);
       
       usersSnapshot.forEach(doc => {
         const userData = doc.data();
-        // Check for expoPushToken
-        if (userData.expoPushToken && userData.expoPushToken.startsWith('ExponentPushToken[')) {
-          expoPushTokens.push(userData.expoPushToken);
-          console.log(`✅ Found Expo Push Token for user ${doc.id}`);
+        if (userData.fcmToken) {
+          fcmTokens.push(userData.fcmToken);
+          console.log(`✅ Found FCM token for user ${doc.id}`);
         } else {
-          console.log(`⚠️ User ${doc.id} has no valid Expo Push Token`);
+          console.log(`⚠️ User ${doc.id} has no FCM token`);
         }
       });
       
-      if (expoPushTokens.length === 0) {
-        console.log('❌ No Expo Push Tokens found in database');
+      if (fcmTokens.length === 0) {
+        console.log('❌ No FCM tokens found in database');
         console.log('💡 Users need to open the app to register for notifications');
         return null;
       }
       
-      console.log(`📤 Sending push notification to ${expoPushTokens.length} devices via Expo...`);
+      console.log(`📤 Sending FCM notification to ${fcmTokens.length} devices via Admin SDK...`);
       
-      // Prepare messages for Expo Push API
-      const messages = expoPushTokens.map(token => ({
-        to: token,
-        sound: 'default',
-        title: notification.title,
-        body: notification.body,
-        data: notification.data || {},
-        priority: 'high',
-        channelId: 'default',
-      }));
-      
-      // Send to Expo Push Notification service
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Accept-Encoding': 'gzip, deflate',
-          'Content-Type': 'application/json',
+      // Prepare FCM message using Admin SDK
+      const message = {
+        notification: {
+          title: notification.title,
+          body: notification.body,
         },
-        body: JSON.stringify(messages),
-      });
+        data: notification.data || {},
+        android: {
+          priority: 'HIGH',
+          notification: {
+            sound: 'default',
+            channelId: 'default',
+          },
+        },
+      };
       
-      const result = await response.json();
-      console.log(`📥 Expo API Response:`, JSON.stringify(result, null, 2));
+      // Send to multiple devices using sendEachForMulticast
+      const multicastMessage = {
+        ...message,
+        tokens: fcmTokens,
+      };
       
-      // Count successes and failures
-      let successCount = 0;
-      let failureCount = 0;
+      const response = await admin.messaging().sendEachForMulticast(multicastMessage);
       
-      if (result.data) {
-        result.data.forEach((item, index) => {
-          if (item.status === 'ok') {
-            successCount++;
-            console.log(`✅ Notification sent successfully to device ${index + 1}`);
-          } else if (item.status === 'error') {
-            failureCount++;
-            console.error(`❌ Error sending to device ${index + 1}:`, item.message);
-            console.error(`   Details:`, JSON.stringify(item.details));
+      console.log(`📊 FCM Response Summary:`);
+      console.log(`   ✅ Successfully sent: ${response.successCount}`);
+      console.log(`   ❌ Failed to send: ${response.failureCount}`);
+      
+      // Log individual results
+      response.responses.forEach((resp, index) => {
+        if (resp.success) {
+          console.log(`✅ Message sent successfully to device ${index + 1}`);
+        } else {
+          console.error(`❌ Error sending to device ${index + 1}:`, resp.error?.code, resp.error?.message);
+          
+          // Handle invalid tokens
+          if (resp.error?.code === 'messaging/invalid-registration-token' ||
+              resp.error?.code === 'messaging/registration-token-not-registered') {
+            console.log(`🗑️ Token ${index + 1} is invalid and should be removed from database`);
           }
-        });
-      }
-      
-      console.log(`\n📊 Summary:`);
-      console.log(`   ✅ Successfully sent: ${successCount}`);
-      console.log(`   ❌ Failed to send: ${failureCount}`);
+        }
+      });
       
       return null;
     } catch (error) {

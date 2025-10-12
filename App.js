@@ -34,36 +34,46 @@ export default function App() {
     const cleanup = setupPushNotificationListeners();
     
     // Listen for new notifications in Firestore
-    // This works when app is OPEN (foreground or background)
+    // This shows LOCAL notifications when app is OPEN (foreground or background)
     let lastNotificationTime = Date.now();
     const unsubscribe = firestore()
       .collection('notifications')
       .orderBy('createdAt', 'desc')
+      .limit(10)
       .onSnapshot(async (snapshot) => {
-        snapshot.docChanges().forEach(async (change) => {
+        if (!snapshot) return;
+        
+        for (const change of snapshot.docChanges()) {
           if (change.type === 'added') {
             const notification = change.doc.data();
             const notificationTime = notification.createdAt?.toMillis() || 0;
             
             // Only show notifications created after app started
             if (notificationTime > lastNotificationTime) {
-              // Show local notification
-              await Notifications.scheduleNotificationAsync({
-                content: {
-                  title: notification.title,
-                  body: notification.body,
-                  data: notification.data || {},
-                  sound: true,
-                  priority: Notifications.AndroidNotificationPriority.MAX,
-                  vibrate: [0, 250, 250, 250],
-                },
-                trigger: null,
-              });
+              console.log('📬 New notification detected:', notification.title);
               
-              console.log('📬 Notification shown:', notification.title);
+              try {
+                // Show local notification using Expo Notifications
+                await Notifications.scheduleNotificationAsync({
+                  content: {
+                    title: notification.title || 'New Update',
+                    body: notification.body || '',
+                    data: notification.data || {},
+                    sound: 'default',
+                    priority: Notifications.AndroidNotificationPriority.MAX,
+                  },
+                  trigger: null, // Show immediately
+                });
+                
+                console.log('✅ Local notification displayed');
+              } catch (error) {
+                console.error('❌ Error showing notification:', error);
+              }
             }
           }
-        });
+        }
+      }, (error) => {
+        console.error('❌ Firestore listener error:', error);
       });
     
     return () => {
