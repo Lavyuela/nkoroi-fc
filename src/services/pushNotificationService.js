@@ -1,4 +1,4 @@
-// Push Notification Service - Firebase Cloud Messaging
+// Push Notification Service - React Native Firebase FCM
 import * as Notifications from 'expo-notifications';
 import messaging from '@react-native-firebase/messaging';
 import { Platform } from 'react-native';
@@ -15,7 +15,7 @@ Notifications.setNotificationHandler({
 });
 
 /**
- * Register device for FCM push notifications
+ * Register device for FCM Push Notifications
  */
 export const registerForPushNotifications = async () => {
   try {
@@ -32,9 +32,20 @@ export const registerForPushNotifications = async () => {
 
     console.log('✅ FCM permission granted');
 
-    // Get FCM token
-    const fcmToken = await messaging().getToken();
-    console.log('✅ FCM Token:', fcmToken);
+    // Get FCM token - THIS IS THE KEY PART
+    let fcmToken = null;
+    try {
+      fcmToken = await messaging().getToken();
+      console.log('✅ FCM Token obtained:', fcmToken.substring(0, 50) + '...');
+    } catch (tokenError) {
+      console.error('❌ Error getting FCM token:', tokenError);
+      return { success: false, error: 'Failed to get FCM token: ' + tokenError.message };
+    }
+
+    if (!fcmToken) {
+      console.error('❌ FCM token is null');
+      return { success: false, error: 'FCM token is null' };
+    }
 
     // Save FCM token to Firestore
     const currentUser = auth().currentUser;
@@ -43,9 +54,14 @@ export const registerForPushNotifications = async () => {
         fcmToken,
         fcmTokenUpdatedAt: firestore.FieldValue.serverTimestamp(),
         platform: Platform.OS,
+        deviceInfo: {
+          lastUpdated: new Date().toISOString(),
+        }
       }, { merge: true });
       
       console.log('✅ FCM token saved to Firestore');
+    } else {
+      console.log('⚠️ No current user, token not saved');
     }
 
     // Configure notification channel for Android
@@ -61,9 +77,21 @@ export const registerForPushNotifications = async () => {
       console.log('✅ Android notification channel configured');
     }
 
+    // Listen for token refresh
+    messaging().onTokenRefresh(async (newToken) => {
+      console.log('🔄 FCM token refreshed:', newToken.substring(0, 50) + '...');
+      const user = auth().currentUser;
+      if (user) {
+        await firestore().collection('users').doc(user.uid).update({
+          fcmToken: newToken,
+          fcmTokenUpdatedAt: firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    });
+
     return { success: true, token: fcmToken };
   } catch (error) {
-    console.error('Error registering for push notifications:', error);
+    console.error('❌ Error registering for push notifications:', error);
     return { success: false, error: error.message };
   }
 };

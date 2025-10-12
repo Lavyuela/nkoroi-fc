@@ -1,6 +1,6 @@
 /**
  * Firebase Cloud Functions for Nkoroi FC
- * Sends push notifications when new notifications are created
+ * Sends push notifications using Firebase Cloud Messaging
  */
 
 const functions = require('firebase-functions');
@@ -26,44 +26,59 @@ exports.sendNotification = functions.firestore
       
       // Get all users with FCM tokens
       const usersSnapshot = await admin.firestore().collection('users').get();
-      const tokens = [];
+      const fcmTokens = [];
+      
+      console.log(`📊 Checking ${usersSnapshot.size} users for FCM tokens...`);
       
       usersSnapshot.forEach(doc => {
         const userData = doc.data();
         if (userData.fcmToken) {
-          tokens.push(userData.fcmToken);
+          fcmTokens.push(userData.fcmToken);
+          console.log(`✅ Found FCM token for user ${doc.id}`);
+        } else {
+          console.log(`⚠️ User ${doc.id} has no FCM token`);
         }
       });
       
-      if (tokens.length === 0) {
-        console.log('⚠️ No FCM tokens found');
+      if (fcmTokens.length === 0) {
+        console.log('❌ No FCM tokens found in database');
+        console.log('💡 Users need to open the app to register for notifications');
         return null;
       }
       
-      console.log(`📤 Sending notification to ${tokens.length} devices...`);
+      console.log(`📤 Sending FCM notification to ${fcmTokens.length} devices...`);
       
-      // Prepare FCM message (correct format for sendToDevice)
-      const message = {
+      // Prepare FCM message payload
+      const payload = {
         notification: {
           title: notification.title,
           body: notification.body,
           sound: 'default',
         },
         data: notification.data || {},
-        priority: 'high',
       };
       
-      // Send to all tokens
-      const response = await admin.messaging().sendToDevice(tokens, message);
+      // Send to all tokens using multicast
+      const response = await admin.messaging().sendToDevice(fcmTokens, payload, {
+        priority: 'high',
+        timeToLive: 60 * 60 * 24, // 24 hours
+      });
       
       console.log(`✅ Successfully sent: ${response.successCount}`);
       console.log(`❌ Failed to send: ${response.failureCount}`);
       
-      // Log any errors
-      if (response.failureCount > 0) {
+      // Log detailed results
+      if (response.results) {
         response.results.forEach((result, index) => {
           if (result.error) {
-            console.error(`Error sending to token ${tokens[index]}:`, result.error);
+            console.error(`❌ Error sending to token ${index}:`, result.error.code, result.error.message);
+            // Remove invalid tokens
+            if (result.error.code === 'messaging/invalid-registration-token' ||
+                result.error.code === 'messaging/registration-token-not-registered') {
+              console.log(`🗑️ Removing invalid token ${index}`);
+            }
+          } else {
+            console.log(`✅ Message sent successfully to token ${index}`);
           }
         });
       }

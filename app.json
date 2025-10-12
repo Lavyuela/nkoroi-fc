@@ -20,7 +20,7 @@
     },
     "android": {
       "package": "com.nkoroifc.livescore",
-      "versionCode": 6,
+      "versionCode": 7,
       "permissions": [
         "NOTIFICATIONS"
       ],
@@ -28,7 +28,8 @@
         "backgroundColor": "#4FC3F7"
       },
       "buildToolsVersion": "34.0.0",
-      "googleServicesFile": "./android/app/google-services.json"
+      "googleServicesFile": "./android/app/google-services.json",
+      "useNextNotificationsApi": true
     },
     "plugins": [
       "expo-notifications"
