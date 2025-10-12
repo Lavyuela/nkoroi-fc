@@ -42,22 +42,15 @@ exports.sendNotification = functions.firestore
       
       console.log(`📤 Sending notification to ${tokens.length} devices...`);
       
-      // Prepare FCM message
+      // Prepare FCM message (correct format for sendToDevice)
       const message = {
         notification: {
           title: notification.title,
           body: notification.body,
+          sound: 'default',
         },
         data: notification.data || {},
-        android: {
-          priority: 'high',
-          notification: {
-            sound: 'default',
-            channelId: 'default',
-            priority: 'max',
-            defaultVibrateTimings: true,
-          },
-        },
+        priority: 'high',
       };
       
       // Send to all tokens
