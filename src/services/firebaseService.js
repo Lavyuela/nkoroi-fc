@@ -613,15 +613,30 @@ export const requestNotificationPermission = async () => {
 };
 
 export const setupNotificationListeners = () => {
-  // Foreground messages
+  // Foreground messages - Show notification when app is open
   messaging().onMessage(async (remoteMessage) => {
-    console.log('📬 Foreground notification:', remoteMessage);
-    // You can show a local notification here
+    console.log('📬 Foreground FCM notification received:', remoteMessage);
+    
+    // Show local notification
+    const Notifications = require('expo-notifications');
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: remoteMessage.notification?.title || 'New Notification',
+        body: remoteMessage.notification?.body || '',
+        data: remoteMessage.data || {},
+        sound: 'default',
+      },
+      trigger: null, // Show immediately
+    });
+    
+    console.log('✅ Notification displayed');
   });
 
-  // Background messages
+  // Background messages - Android handles these automatically
   messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-    console.log('📬 Background notification:', remoteMessage);
+    console.log('📬 Background FCM notification received:', remoteMessage);
+    // Android will show this automatically, we just log it
+    return Promise.resolve();
   });
 };
 

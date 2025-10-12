@@ -4,6 +4,7 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { registerForPushNotifications, setupPushNotificationListeners } from './src/services/pushNotificationService';
+import { setupNotificationListeners } from './src/services/firebaseService';
 import firestore from '@react-native-firebase/firestore';
 import * as Notifications from 'expo-notifications';
 
@@ -20,6 +21,9 @@ export default function App() {
     };
     
     initPushNotifications();
+    
+    // Setup FCM listeners (handles notifications when app is closed!)
+    setupNotificationListeners();
     
     // Setup listeners for when user taps notifications
     const cleanup = setupPushNotificationListeners();
