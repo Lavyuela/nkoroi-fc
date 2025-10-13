@@ -18,10 +18,11 @@ jobs:
         with:
           node-version: '20'
       
-      - name: 📦 Install dependencies
+      - name: 🧹 Clean install dependencies
         run: |
+          rm -rf node_modules package-lock.json
           npm install
-          echo "✅ Dependencies installed"
+          echo "✅ Dependencies installed fresh"
       
       - name: ☕ Setup Java
         uses: actions/setup-java@v4
@@ -53,6 +54,7 @@ jobs:
       - name: 🏗️ Build APK with Gradle
         run: |
           cd android
+          ./gradlew clean
           ./gradlew assembleRelease --no-daemon
       
       - name: 📤 Upload APK
