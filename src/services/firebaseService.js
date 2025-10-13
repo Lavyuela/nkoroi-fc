@@ -617,16 +617,19 @@ export const setupNotificationListeners = () => {
   messaging().onMessage(async (remoteMessage) => {
     console.log('📬 Foreground FCM notification received:', remoteMessage);
     
-    // Show local notification
-    const Notifications = require('expo-notifications');
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: remoteMessage.notification?.title || 'New Notification',
-        body: remoteMessage.notification?.body || '',
-        data: remoteMessage.data || {},
+    // Show local notification using notifee
+    const notifee = require('@notifee/react-native').default;
+    await notifee.displayNotification({
+      title: remoteMessage.notification?.title || 'New Notification',
+      body: remoteMessage.notification?.body || '',
+      data: remoteMessage.data || {},
+      android: {
+        channelId: 'default',
         sound: 'default',
+        pressAction: {
+          id: 'default',
+        },
       },
-      trigger: null, // Show immediately
     });
     
     console.log('✅ Notification displayed');
