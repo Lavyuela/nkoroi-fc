@@ -1,153 +1,177 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import firestore from '@react-native-firebase/firestore';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import { Platform } from 'react-native';
+import messaging from '@react-native-firebase/messaging';
+import { Platform, PermissionsAndroid } from 'react-native';
+import notifee, { AndroidImportance } from '@notifee/react-native';
 
-// Configure how notifications are handled when app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Request notification permissions
+async function requestUserPermission() {
+  if (Platform.OS === 'android' && Platform.Version >= 33) {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+    );
+    console.log('📱 Notification permission:', granted);
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  }
+  
+  const authStatus = await messaging().requestPermission();
+  const enabled =
+    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
-// Function to register for push notifications
-async function registerForPushNotificationsAsync() {
-  if (!Device.isDevice) {
-    alert('Must use physical device for push notifications');
-    return;
+  if (enabled) {
+    console.log('✅ Authorization status:', authStatus);
   }
 
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
+  return enabled;
+}
 
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
+// Get FCM token
+async function getFCMToken() {
+  try {
+    const token = await messaging().getToken();
+    console.log('🔑 FCM Token:', token);
+    // TODO: Save this token to Firestore for the current user
+    return token;
+  } catch (error) {
+    console.error('❌ Error getting FCM token:', error);
   }
+}
 
-  if (finalStatus !== 'granted') {
-    alert('Permission not granted!');
-    return;
-  }
+// Create notification channel for Android
+async function createNotificationChannel() {
+  await notifee.createChannel({
+    id: 'default',
+    name: 'Default Channel',
+    importance: AndroidImportance.HIGH,
+    sound: 'default',
+    vibration: true,
+    vibrationPattern: [300, 500],
+  });
+  console.log('✅ Notification channel created');
+}
 
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
-  console.log('Expo Push Token:', token);
-
-  if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#4FC3F7',
+// Display local notification using notifee
+async function displayNotification(title, body, data = {}) {
+  try {
+    await notifee.displayNotification({
+      title: title,
+      body: body,
+      data: data,
+      android: {
+        channelId: 'default',
+        importance: AndroidImportance.HIGH,
+        pressAction: {
+          id: 'default',
+        },
+        sound: 'default',
+      },
     });
+    console.log('✅ Notification displayed:', title);
+  } catch (error) {
+    console.error('❌ Error displaying notification:', error);
   }
-
-  return token;
 }
 
 export default function App() {
-  const notificationListener = useRef();
-  const responseListener = useRef();
-
   useEffect(() => {
-    // Set up Android notification channel FIRST
-    if (Platform.OS === 'android') {
-      Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#4FC3F7',
-      });
-    }
-    
-    // Register for push notifications and get token
-    registerForPushNotificationsAsync().then(token => {
-      if (token) {
-        console.log('✅ Expo Push Token:', token);
-        // TODO: Save this token to Firestore for the current user
+    // Initialize Firebase Messaging
+    async function initializeMessaging() {
+      console.log('🚀 Initializing Firebase Messaging...');
+      
+      // Create notification channel
+      await createNotificationChannel();
+      
+      // Request permissions
+      const hasPermission = await requestUserPermission();
+      if (hasPermission) {
+        // Get FCM token
+        await getFCMToken();
       }
-    });
-
-    // Listen for notifications received while app is foregrounded
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('📬 Notification received:', notification);
-    });
-
-    // Listen for notification taps
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('👆 Notification tapped:', response);
-    });
-    
-    // Listen for new notifications in Firestore - SIMPLE & RELIABLE
-    let lastNotificationTime = Date.now();
-    console.log('🔔 Notification listener started at:', new Date(lastNotificationTime).toISOString());
-    
-    const unsubscribe = firestore()
-      .collection('notifications')
-      .orderBy('createdAt', 'desc')
-      .limit(10)
-      .onSnapshot(async (snapshot) => {
-        if (!snapshot) {
-          console.log('⚠️ No snapshot received');
-          return;
+      
+      // Handle foreground messages
+      const unsubscribeForeground = messaging().onMessage(async remoteMessage => {
+        console.log('📬 Foreground message received:', remoteMessage);
+        
+        if (remoteMessage.notification) {
+          await displayNotification(
+            remoteMessage.notification.title || 'New Notification',
+            remoteMessage.notification.body || '',
+            remoteMessage.data
+          );
         }
+      });
+      
+      // Handle background messages (app in background/quit)
+      messaging().setBackgroundMessageHandler(async remoteMessage => {
+        console.log('📬 Background message received:', remoteMessage);
         
-        console.log('📥 Firestore snapshot received, changes:', snapshot.docChanges().length);
-        
-        for (const change of snapshot.docChanges()) {
-          if (change.type === 'added') {
-            const notification = change.doc.data();
-            const notificationTime = notification.createdAt?.toMillis() || 0;
-            
-            console.log('📬 New notification detected:', {
-              title: notification.title,
-              notificationTime: new Date(notificationTime).toISOString(),
-              lastNotificationTime: new Date(lastNotificationTime).toISOString(),
-              willShow: notificationTime > lastNotificationTime
-            });
-            
-            // Only show notifications created after app started
-            if (notificationTime > lastNotificationTime) {
-              console.log('📬 Showing notification:', notification.title);
+        if (remoteMessage.notification) {
+          await displayNotification(
+            remoteMessage.notification.title || 'New Notification',
+            remoteMessage.notification.body || '',
+            remoteMessage.data
+          );
+        }
+      });
+      
+      // Listen for new notifications in Firestore
+      let lastNotificationTime = Date.now();
+      console.log('🔔 Firestore listener started at:', new Date(lastNotificationTime).toISOString());
+      
+      const unsubscribeFirestore = firestore()
+        .collection('notifications')
+        .orderBy('createdAt', 'desc')
+        .limit(10)
+        .onSnapshot(async (snapshot) => {
+          if (!snapshot) {
+            console.log('⚠️ No snapshot received');
+            return;
+          }
+          
+          console.log('📥 Firestore snapshot received, changes:', snapshot.docChanges().length);
+          
+          for (const change of snapshot.docChanges()) {
+            if (change.type === 'added') {
+              const notification = change.doc.data();
+              const notificationTime = notification.createdAt?.toMillis() || 0;
               
-              try {
-                // Show local notification
-                await Notifications.scheduleNotificationAsync({
-                  content: {
-                    title: notification.title || 'New Update',
-                    body: notification.body || '',
-                    data: notification.data || {},
-                    sound: 'default',
-                    priority: Notifications.AndroidNotificationPriority.MAX,
-                  },
-                  trigger: null,
-                });
+              console.log('📬 New notification detected:', {
+                title: notification.title,
+                notificationTime: new Date(notificationTime).toISOString(),
+                lastNotificationTime: new Date(lastNotificationTime).toISOString(),
+                willShow: notificationTime > lastNotificationTime
+              });
+              
+              // Only show notifications created after app started
+              if (notificationTime > lastNotificationTime) {
+                console.log('📬 Showing notification:', notification.title);
                 
-                console.log('✅ Notification shown successfully');
-              } catch (error) {
-                console.error('❌ Error showing notification:', error);
+                await displayNotification(
+                  notification.title || 'New Update',
+                  notification.body || '',
+                  notification.data || {}
+                );
+              } else {
+                console.log('⏭️ Skipping old notification');
               }
-            } else {
-              console.log('⏭️ Skipping old notification');
             }
           }
-        }
-      }, (error) => {
-        console.error('❌ Firestore listener error:', error);
-      });
+        }, (error) => {
+          console.error('❌ Firestore listener error:', error);
+        });
+      
+      return () => {
+        unsubscribeForeground();
+        unsubscribeFirestore();
+      };
+    }
     
-    return () => {
-      Notifications.removeNotificationSubscription(notificationListener.current);
-      Notifications.removeNotificationSubscription(responseListener.current);
-      unsubscribe();
-    };
+    initializeMessaging();
   }, []);
 
   return (

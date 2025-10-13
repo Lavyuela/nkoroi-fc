@@ -19,7 +19,9 @@ jobs:
           node-version: '20'
       
       - name: 📦 Install dependencies
-        run: npm install
+        run: |
+          npm install
+          echo "✅ Dependencies installed"
       
       - name: ☕ Setup Java
         uses: actions/setup-java@v4
