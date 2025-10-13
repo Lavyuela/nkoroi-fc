@@ -1,37 +1,79 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import firestore from '@react-native-firebase/firestore';
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { Platform } from 'react-native';
 
 // Configure how notifications are handled when app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
-    shouldSetBadge: true,
+    shouldSetBadge: false,
   }),
 });
 
+// Function to register for push notifications
+async function registerForPushNotificationsAsync() {
+  if (!Device.isDevice) {
+    alert('Must use physical device for push notifications');
+    return;
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') {
+    alert('Permission not granted!');
+    return;
+  }
+
+  const token = (await Notifications.getExpoPushTokenAsync()).data;
+  console.log('Expo Push Token:', token);
+
+  if (Platform.OS === 'android') {
+    Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#4FC3F7',
+    });
+  }
+
+  return token;
+}
+
 export default function App() {
+  const notificationListener = useRef();
+  const responseListener = useRef();
+
   useEffect(() => {
-    // Request notification permission
-    const setupNotifications = async () => {
-      try {
-        const { status } = await Notifications.requestPermissionsAsync();
-        if (status === 'granted') {
-          console.log('✅ Notification permission granted');
-        } else {
-          console.log('⚠️ Notification permission denied');
-        }
-      } catch (error) {
-        console.log('⚠️ Error requesting permission:', error);
+    // Register for push notifications and get token
+    registerForPushNotificationsAsync().then(token => {
+      if (token) {
+        console.log('✅ Expo Push Token:', token);
+        // TODO: Save this token to Firestore for the current user
       }
-    };
-    
-    setupNotifications();
+    });
+
+    // Listen for notifications received while app is foregrounded
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      console.log('📬 Notification received:', notification);
+    });
+
+    // Listen for notification taps
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('👆 Notification tapped:', response);
+    });
     
     // Listen for new notifications in Firestore - SIMPLE & RELIABLE
     let lastNotificationTime = Date.now();
@@ -76,6 +118,8 @@ export default function App() {
       });
     
     return () => {
+      Notifications.removeNotificationSubscription(notificationListener.current);
+      Notifications.removeNotificationSubscription(responseListener.current);
       unsubscribe();
     };
   }, []);

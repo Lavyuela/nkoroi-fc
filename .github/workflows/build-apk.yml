@@ -37,6 +37,14 @@ jobs:
           echo "$GOOGLE_SERVICES_JSON" | base64 --decode > android/app/google-services.json
           echo "✅ google-services.json restored"
       
+      - name: 🔥 Setup Firebase Service Account (FCM V1)
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          mkdir -p android/app/src/main/assets
+          echo "$FIREBASE_SERVICE_ACCOUNT" | base64 --decode > android/app/src/main/assets/firebase-service-account.json
+          echo "✅ Firebase Service Account configured for FCM V1"
+      
       - name: 🔧 Make gradlew executable
         run: chmod +x android/gradlew
       
