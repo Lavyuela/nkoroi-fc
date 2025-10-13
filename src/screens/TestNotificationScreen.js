@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Button, Card, Appbar, Divider } from 'react-native-paper';
-import * as Notifications from 'expo-notifications';
-import { scheduleLocalNotification, requestNotificationPermission, getExpoPushToken } from '../services/notificationService';
+import notifee, { AndroidImportance } from '@notifee/react-native';
+import messaging from '@react-native-firebase/messaging';
 
 const TestNotificationScreen = ({ navigation }) => {
   const [permissionStatus, setPermissionStatus] = useState('unknown');
@@ -15,7 +15,9 @@ const TestNotificationScreen = ({ navigation }) => {
 
   const testPermission = async () => {
     try {
-      const hasPermission = await requestNotificationPermission();
+      const authStatus = await messaging().requestPermission();
+      const hasPermission = authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+                           authStatus === messaging.AuthorizationStatus.PROVISIONAL;
       setPermissionStatus(hasPermission ? 'granted' : 'denied');
       addResult(`Permission: ${hasPermission ? '✅ Granted' : '❌ Denied'}`, hasPermission);
     } catch (error) {
@@ -25,7 +27,7 @@ const TestNotificationScreen = ({ navigation }) => {
 
   const testGetToken = async () => {
     try {
-      const token = await getExpoPushToken();
+      const token = await messaging().getToken();
       setPushToken(token);
       addResult(token ? `✅ Token: ${token.substring(0, 30)}...` : '❌ No token', !!token);
     } catch (error) {
@@ -35,10 +37,20 @@ const TestNotificationScreen = ({ navigation }) => {
 
   const testSimpleNotification = async () => {
     try {
-      await scheduleLocalNotification(
-        '🎉 Test Notification',
-        'This is a simple test notification!'
-      );
+      await notifee.createChannel({
+        id: 'default',
+        name: 'Default Channel',
+        importance: AndroidImportance.HIGH,
+      });
+      
+      await notifee.displayNotification({
+        title: '🎉 Test Notification',
+        body: 'This is a simple test notification!',
+        android: {
+          channelId: 'default',
+          importance: AndroidImportance.HIGH,
+        },
+      });
       addResult('✅ Simple notification sent');
     } catch (error) {
       addResult(`❌ Error: ${error.message}`, false);
@@ -47,14 +59,14 @@ const TestNotificationScreen = ({ navigation }) => {
 
   const testGoalNotification = async () => {
     try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '⚽ GOAL!',
-          body: 'Nkoroi FC 1 - 0 Opponent',
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.MAX,
+      await notifee.displayNotification({
+        title: '⚽ GOAL!',
+        body: 'Nkoroi FC 1 - 0 Opponent',
+        android: {
+          channelId: 'default',
+          importance: AndroidImportance.HIGH,
+          sound: 'default',
         },
-        trigger: null,
       });
       addResult('✅ Goal notification sent');
     } catch (error) {
@@ -64,13 +76,14 @@ const TestNotificationScreen = ({ navigation }) => {
 
   const testYellowCardNotification = async () => {
     try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '🟨 Yellow Card',
-          body: 'Player Name - Nkoroi FC',
-          sound: true,
+      await notifee.displayNotification({
+        title: '🟨 Yellow Card',
+        body: 'Player Name - Nkoroi FC',
+        android: {
+          channelId: 'default',
+          importance: AndroidImportance.HIGH,
+          sound: 'default',
         },
-        trigger: null,
       });
       addResult('✅ Yellow card notification sent');
     } catch (error) {
@@ -80,13 +93,14 @@ const TestNotificationScreen = ({ navigation }) => {
 
   const testMatchStartNotification = async () => {
     try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '⚽ Match Started!',
-          body: 'Nkoroi FC vs Opponent - Live now!',
-          sound: true,
+      await notifee.displayNotification({
+        title: '⚽ Match Started!',
+        body: 'Nkoroi FC vs Opponent - Live now!',
+        android: {
+          channelId: 'default',
+          importance: AndroidImportance.HIGH,
+          sound: 'default',
         },
-        trigger: null,
       });
       addResult('✅ Match start notification sent');
     } catch (error) {
@@ -96,14 +110,19 @@ const TestNotificationScreen = ({ navigation }) => {
 
   const testScheduledNotification = async () => {
     try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: '⏰ Scheduled Test',
-          body: 'This notification was scheduled for 5 seconds from now',
-          sound: true,
+      const trigger = {
+        type: notifee.TriggerType.TIMESTAMP,
+        timestamp: Date.now() + 5000, // 5 seconds from now
+      };
+      
+      await notifee.createTriggerNotification({
+        title: '⏰ Scheduled Test',
+        body: 'This notification was scheduled for 5 seconds ago',
+        android: {
+          channelId: 'default',
+          importance: AndroidImportance.HIGH,
         },
-        trigger: { seconds: 5 },
-      });
+      }, trigger);
       addResult('✅ Scheduled notification (5 seconds)');
     } catch (error) {
       addResult(`❌ Error: ${error.message}`, false);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Linking, Share, TouchableOpacity, Platform } from 'react-native';
 import { Text, Card, Button, Appbar, Chip, ActivityIndicator, FAB, Portal, Dialog, TextInput } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
-import * as Notifications from 'expo-notifications';
+import notifee, { AndroidImportance } from '@notifee/react-native';
 import { getMatch, updateMatch, addMatchEvent } from '../services/firebaseService';
 import firestore from '@react-native-firebase/firestore';
 
@@ -37,14 +37,13 @@ const MatchDetailScreen = ({ route, navigation }) => {
 
   const setupNotificationChannel = async () => {
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('match-events', {
+      await notifee.createChannel({
+        id: 'match-events',
         name: 'Match Events',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#4FC3F7',
+        importance: AndroidImportance.HIGH,
+        vibration: true,
+        vibrationPattern: [300, 500],
         sound: 'default',
-        enableVibrate: true,
-        showBadge: true,
       });
     }
   };
