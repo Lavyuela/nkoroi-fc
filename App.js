@@ -57,6 +57,16 @@ export default function App() {
   const responseListener = useRef();
 
   useEffect(() => {
+    // Set up Android notification channel FIRST
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#4FC3F7',
+      });
+    }
+    
     // Register for push notifications and get token
     registerForPushNotificationsAsync().then(token => {
       if (token) {
@@ -77,21 +87,35 @@ export default function App() {
     
     // Listen for new notifications in Firestore - SIMPLE & RELIABLE
     let lastNotificationTime = Date.now();
+    console.log('🔔 Notification listener started at:', new Date(lastNotificationTime).toISOString());
+    
     const unsubscribe = firestore()
       .collection('notifications')
       .orderBy('createdAt', 'desc')
       .limit(10)
       .onSnapshot(async (snapshot) => {
-        if (!snapshot) return;
+        if (!snapshot) {
+          console.log('⚠️ No snapshot received');
+          return;
+        }
+        
+        console.log('📥 Firestore snapshot received, changes:', snapshot.docChanges().length);
         
         for (const change of snapshot.docChanges()) {
           if (change.type === 'added') {
             const notification = change.doc.data();
             const notificationTime = notification.createdAt?.toMillis() || 0;
             
+            console.log('📬 New notification detected:', {
+              title: notification.title,
+              notificationTime: new Date(notificationTime).toISOString(),
+              lastNotificationTime: new Date(lastNotificationTime).toISOString(),
+              willShow: notificationTime > lastNotificationTime
+            });
+            
             // Only show notifications created after app started
             if (notificationTime > lastNotificationTime) {
-              console.log('📬 New notification:', notification.title);
+              console.log('📬 Showing notification:', notification.title);
               
               try {
                 // Show local notification
@@ -106,10 +130,12 @@ export default function App() {
                   trigger: null,
                 });
                 
-                console.log('✅ Notification shown');
+                console.log('✅ Notification shown successfully');
               } catch (error) {
                 console.error('❌ Error showing notification:', error);
               }
+            } else {
+              console.log('⏭️ Skipping old notification');
             }
           }
         }
