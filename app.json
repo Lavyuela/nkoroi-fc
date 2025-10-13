@@ -22,23 +22,19 @@
       "package": "com.nkoroifc.livescore",
       "versionCode": 7,
       "permissions": [
-        "NOTIFICATIONS"
+        "NOTIFICATIONS",
+        "POST_NOTIFICATIONS"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#4FC3F7",
         "foregroundImage": "./assets/nkoroifclogo.png"
       },
       "buildToolsVersion": "34.0.0",
-      "googleServicesFile": "./android/app/google-services.json",
-      "useNextNotificationsApi": true
-    },
-    "notifications": {
-      "icon": "./assets/nkoroifclogo.png",
-      "color": "#4FC3F7"
+      "googleServicesFile": "./android/app/google-services.json"
     },
     "plugins": [
-      "expo-notifications",
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      "@notifee/react-native"
     ],
     "extra": {
       "eas": {
