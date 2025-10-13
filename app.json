@@ -33,8 +33,7 @@
       "googleServicesFile": "./android/app/google-services.json"
     },
     "plugins": [
-      "@react-native-firebase/app",
-      "@notifee/react-native"
+      "@react-native-firebase/app"
     ],
     "extra": {
       "eas": {
