@@ -169,12 +169,21 @@ export const updateUserRole = async (userId, newRole) => {
       throw new Error('Only Super Admins can change roles');
     }
     
-    // Update role
-    await firestore().collection('roles').doc(userId).update({
+    // Get user email for the role document
+    const userDoc = await firestore().collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      throw new Error('User not found');
+    }
+    
+    const userEmail = userDoc.data().email;
+    
+    // Update or create role document (use set with merge to create if doesn't exist)
+    await firestore().collection('roles').doc(userId).set({
       role: newRole,
+      email: userEmail,
       updatedAt: firestore.FieldValue.serverTimestamp(),
       updatedBy: currentUser.uid,
-    });
+    }, { merge: true });
     
     console.log(`✅ User ${userId} role updated to ${newRole}`);
     return { success: true };
