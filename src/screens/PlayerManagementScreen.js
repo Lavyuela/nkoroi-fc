@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert, ScrollView } from 'react-native';
 import { Text, Card, Appbar, FAB, Portal, Dialog, TextInput, Button, Chip, IconButton, Menu } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
-import { getAllPlayers, addPlayer, updatePlayer, deletePlayer } from '../services/firebaseService';
+import { addPlayer, updatePlayer, deletePlayer } from '../services/firebaseService';
+import firestore from '@react-native-firebase/firestore';
 
 const PlayerManagementScreen = ({ navigation }) => {
   const { isAdmin } = useAuth();
@@ -25,19 +26,35 @@ const PlayerManagementScreen = ({ navigation }) => {
       navigation.replace('Home');
       return;
     }
-    loadPlayers();
-  }, [isAdmin]);
 
-  const loadPlayers = async () => {
-    try {
-      const playersList = await getAllPlayers();
-      setPlayers(playersList);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error loading players:', error);
-      setLoading(false);
-    }
-  };
+    // Real-time listener for players
+    const unsubscribe = firestore()
+      .collection('players')
+      .orderBy('name', 'asc')
+      .onSnapshot(
+        (snapshot) => {
+          const playersList = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            // Filter active players
+            if (data.active !== false) {
+              playersList.push({
+                id: doc.id,
+                ...data,
+              });
+            }
+          });
+          setPlayers(playersList);
+          setLoading(false);
+        },
+        (error) => {
+          console.error('Error loading players:', error);
+          setLoading(false);
+        }
+      );
+
+    return () => unsubscribe();
+  }, [isAdmin]);
 
   const openDialog = (player = null) => {
     if (player) {
@@ -89,7 +106,7 @@ const PlayerManagementScreen = ({ navigation }) => {
       if (result.success) {
         Alert.alert('Success', editingPlayer ? 'Player updated' : 'Player added');
         closeDialog();
-        loadPlayers();
+        // No need to reload - real-time listener will update automatically
       } else {
         Alert.alert('Error', result.error || 'Failed to save player');
       }
@@ -111,7 +128,7 @@ const PlayerManagementScreen = ({ navigation }) => {
             const result = await deletePlayer(player.id);
             if (result.success) {
               Alert.alert('Success', 'Player deleted');
-              loadPlayers();
+              // No need to reload - real-time listener will update automatically
             } else {
               Alert.alert('Error', result.error || 'Failed to delete player');
             }
@@ -209,7 +226,6 @@ const PlayerManagementScreen = ({ navigation }) => {
       <Appbar.Header style={styles.header}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title="Player Management" />
-        <Appbar.Action icon="refresh" onPress={loadPlayers} />
       </Appbar.Header>
 
       <ScrollView style={styles.content}>
