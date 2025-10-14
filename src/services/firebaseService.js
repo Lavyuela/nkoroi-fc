@@ -787,16 +787,19 @@ export const getAllPlayers = async () => {
   try {
     const snapshot = await firestore()
       .collection('players')
-      .where('active', '==', true)
       .orderBy('name', 'asc')
       .get();
 
     const players = [];
     snapshot.forEach(doc => {
-      players.push({
-        id: doc.id,
-        ...doc.data(),
-      });
+      const data = doc.data();
+      // Filter active players in code instead of query
+      if (data.active !== false) {
+        players.push({
+          id: doc.id,
+          ...data,
+        });
+      }
     });
 
     return players;
@@ -810,17 +813,20 @@ export const getPlayersByPosition = async (position) => {
   try {
     const snapshot = await firestore()
       .collection('players')
-      .where('active', '==', true)
       .where('position', '==', position)
       .orderBy('name', 'asc')
       .get();
 
     const players = [];
     snapshot.forEach(doc => {
-      players.push({
-        id: doc.id,
-        ...doc.data(),
-      });
+      const data = doc.data();
+      // Filter active players in code
+      if (data.active !== false) {
+        players.push({
+          id: doc.id,
+          ...data,
+        });
+      }
     });
 
     return players;

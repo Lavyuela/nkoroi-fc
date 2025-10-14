@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl, TouchableOpacity, Animated } from 'react-native';
-import { Text, Card, FAB, Chip, Appbar, ActivityIndicator, Button } from 'react-native-paper';
+import { Text, Card, Chip, Appbar, ActivityIndicator, Button } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import { subscribeToMatches, logoutUser } from '../services/firebaseService';
 
@@ -242,15 +242,6 @@ const HomeScreen = ({ navigation }) => {
           </View>
         }
       />
-
-      {isAdmin && (
-        <FAB
-          icon="plus"
-          style={styles.fab}
-          onPress={() => navigation.navigate('CreateMatch')}
-          color="#fff"
-        />
-      )}
     </View>
   );
 };
@@ -411,14 +402,6 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: 14,
     color: '#666',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#4FC3F7',
-    elevation: 6,
   },
 });
 
