@@ -654,14 +654,17 @@ export const setupNotificationListeners = () => {
 
 export const sendNotificationToAllUsers = async (title, body, data = {}) => {
   try {
-    // Import push notification service
-    const { sendPushNotificationToAllUsers } = require('./pushNotificationService');
+    // Save notification to Firestore - Cloud Function will send FCM notifications
+    await firestore().collection('notifications').add({
+      title,
+      body,
+      data,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+      sent: false,
+    });
     
-    // Send REAL push notifications to all users (works even when app is closed!)
-    const result = await sendPushNotificationToAllUsers(title, body, data);
-    
-    console.log(`✅ Push notification sent: ${title}`);
-    return result;
+    console.log(`✅ Notification queued: ${title}`);
+    return { success: true };
   } catch (error) {
     console.error('Error sending notification:', error);
     return { success: false, error: error.message };
