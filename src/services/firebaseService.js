@@ -564,6 +564,17 @@ export const createUpdate = async (updateData) => {
 // Alias for compatibility
 export const createTeamUpdate = createUpdate;
 
+export const deleteUpdate = async (updateId) => {
+  try {
+    await firestore().collection('updates').doc(updateId).delete();
+    console.log('✅ Update deleted:', updateId);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting update:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const subscribeToUpdates = (callback) => {
   return firestore()
     .collection('updates')

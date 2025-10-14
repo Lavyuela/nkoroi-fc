@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { Text, Card, FAB, Appbar, ActivityIndicator, Chip } from 'react-native-paper';
+import { View, StyleSheet, FlatList, RefreshControl, Alert } from 'react-native';
+import { Text, Card, FAB, Appbar, ActivityIndicator, Chip, IconButton, Menu } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
+import { deleteUpdate } from '../services/firebaseService';
 import firestore from '@react-native-firebase/firestore';
 
 const TeamUpdatesScreen = ({ navigation }) => {
@@ -9,6 +10,7 @@ const TeamUpdatesScreen = ({ navigation }) => {
   const [updates, setUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [menuVisible, setMenuVisible] = useState({});
 
   useEffect(() => {
     loadUpdates();
@@ -89,18 +91,71 @@ const TeamUpdatesScreen = ({ navigation }) => {
     return date.toLocaleDateString();
   };
 
+  const openMenu = (updateId) => {
+    setMenuVisible({ ...menuVisible, [updateId]: true });
+  };
+
+  const closeMenu = (updateId) => {
+    setMenuVisible({ ...menuVisible, [updateId]: false });
+  };
+
+  const handleDeleteUpdate = (update) => {
+    Alert.alert(
+      'Delete Update',
+      `Are you sure you want to delete "${update.title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            closeMenu(update.id);
+            const result = await deleteUpdate(update.id);
+            if (result.success) {
+              Alert.alert('Success', 'Update deleted successfully');
+            } else {
+              Alert.alert('Error', result.error || 'Failed to delete update');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderUpdate = ({ item }) => (
     <Card style={styles.updateCard}>
       <Card.Content>
         <View style={styles.headerRow}>
-          <Chip
-            mode="flat"
-            style={[styles.typeChip, { backgroundColor: getTypeColor(item.type) }]}
-            textStyle={styles.typeText}
-          >
-            {getTypeLabel(item.type)}
-          </Chip>
-          <Text style={styles.timeText}>{formatDate(item.timestamp)}</Text>
+          <View style={styles.headerLeft}>
+            <Chip
+              mode="flat"
+              style={[styles.typeChip, { backgroundColor: getTypeColor(item.type) }]}
+              textStyle={styles.typeText}
+            >
+              {getTypeLabel(item.type)}
+            </Chip>
+            <Text style={styles.timeText}>{formatDate(item.timestamp)}</Text>
+          </View>
+          {isAdmin && (
+            <Menu
+              visible={menuVisible[item.id] || false}
+              onDismiss={() => closeMenu(item.id)}
+              anchor={
+                <IconButton
+                  icon="dots-vertical"
+                  size={20}
+                  onPress={() => openMenu(item.id)}
+                />
+              }
+            >
+              <Menu.Item
+                leadingIcon="delete"
+                onPress={() => handleDeleteUpdate(item)}
+                title="Delete"
+                titleStyle={{ color: '#f44336' }}
+              />
+            </Menu>
+          )}
         </View>
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.content}>{item.content}</Text>
@@ -182,6 +237,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   typeChip: {
     height: 28,
   },
@@ -193,6 +253,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 12,
     color: '#999',
+    marginLeft: 8,
   },
   title: {
     fontSize: 18,

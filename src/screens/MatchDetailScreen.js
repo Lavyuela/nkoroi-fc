@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Alert, Linking, Share, TouchableOpacity, 
 import { Text, Card, Button, Appbar, Chip, ActivityIndicator, FAB, Portal, Dialog, TextInput } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import notifee, { AndroidImportance } from '@notifee/react-native';
-import { getMatch, updateMatch, addMatchEvent } from '../services/firebaseService';
+import { getMatch, updateMatch, addMatchEvent, deleteMatch } from '../services/firebaseService';
 import firestore from '@react-native-firebase/firestore';
 
 const MatchDetailScreen = ({ route, navigation }) => {
@@ -371,7 +371,7 @@ const MatchDetailScreen = ({ route, navigation }) => {
   const handleDeleteMatch = () => {
     Alert.alert(
       'Delete Match',
-      'Are you sure you want to delete this match?',
+      'Are you sure you want to delete this match? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -379,15 +379,16 @@ const MatchDetailScreen = ({ route, navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              const savedMatches = await AsyncStorage.getItem('demoMatches');
-              if (savedMatches) {
-                const matches = JSON.parse(savedMatches);
-                const filtered = matches.filter(m => m.id !== matchId);
-                await AsyncStorage.setItem('demoMatches', JSON.stringify(filtered));
+              const result = await deleteMatch(matchId);
+              if (result.success) {
+                Alert.alert('Success', 'Match deleted successfully');
+                navigation.goBack();
+              } else {
+                Alert.alert('Error', result.error || 'Failed to delete match');
               }
-              navigation.goBack();
             } catch (error) {
               console.log('Error deleting match:', error);
+              Alert.alert('Error', 'Failed to delete match');
             }
           },
         },
