@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:tools="http://schemas.android.com/tools">
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
   <uses-permission android:name="android.permission.NOTIFICATIONS"/>
@@ -19,9 +20,9 @@
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
     
     <!-- Firebase Cloud Messaging -->
-    <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@mipmap/ic_launcher"/>
-    <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/colorPrimary"/>
-    <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="default"/>
+    <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@mipmap/ic_launcher" tools:replace="android:resource"/>
+    <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/colorPrimary" tools:replace="android:resource"/>
+    <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="default" tools:replace="android:value"/>
     
     <!-- Firebase Messaging Service -->
     <service
