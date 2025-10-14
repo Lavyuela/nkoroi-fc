@@ -20,10 +20,34 @@ const MatchDetailScreen = ({ route, navigation }) => {
   const [currentMinute, setCurrentMinute] = useState(0);
   const [showMinuteDialog, setShowMinuteDialog] = useState(false);
   const [tempMinute, setTempMinute] = useState('');
+  const [players, setPlayers] = useState([]);
+  const [showPlayerDialog, setShowPlayerDialog] = useState(false);
+  const [pendingEvent, setPendingEvent] = useState(null);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   useEffect(() => {
     loadMatch();
     loadUserPreferences();
+    
+    // Load players with real-time listener
+    const unsubscribe = firestore()
+      .collection('players')
+      .orderBy('name', 'asc')
+      .onSnapshot((snapshot) => {
+        const playersList = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.active !== false) {
+            playersList.push({
+              id: doc.id,
+              ...data,
+            });
+          }
+        });
+        setPlayers(playersList);
+      });
+    
+    return () => unsubscribe();
   }, [matchId]);
 
   useEffect(() => {
@@ -82,7 +106,7 @@ const MatchDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  const addEvent = async (eventType, team, description, minute) => {
+  const addEvent = async (eventType, team, description, minute, playerData = null) => {
     const newEvent = {
       type: eventType,
       team: team,
@@ -91,6 +115,15 @@ const MatchDetailScreen = ({ route, navigation }) => {
       timestamp: Date.now(),
       minute: minute || calculateMatchMinute(),
     };
+    
+    // Add player information if provided
+    if (playerData) {
+      newEvent.playerId = playerData.id;
+      newEvent.playerName = playerData.name;
+      newEvent.jerseyNumber = playerData.jerseyNumber;
+      newEvent.description = `${playerData.name}${playerData.jerseyNumber ? ` (#${playerData.jerseyNumber})` : ''} - ${description}`;
+      newEvent.player = playerData.name;
+    }
     
     // Use Firebase function which sends notifications automatically
     const result = await addMatchEvent(matchId, newEvent);
@@ -228,7 +261,7 @@ const MatchDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleGoal = async (team) => {
+  const handleGoal = async (team, player = null) => {
     let newHomeScore = homeScore;
     let newAwayScore = awayScore;
 
@@ -248,22 +281,68 @@ const MatchDetailScreen = ({ route, navigation }) => {
       awayScore: newAwayScore,
     });
     
-    await addEvent('goal', scoringTeam, `GOAL! ${scoringTeam} scores! ${score}`);
+    if (players.length > 0 && !player) {
+      // Show player selection for goal
+      setPendingEvent({ 
+        eventType: 'goal', 
+        team, 
+        description: `GOAL! ${score}`,
+        homeScore: newHomeScore,
+        awayScore: newAwayScore
+      });
+      setShowPlayerDialog(true);
+    } else {
+      await addEvent('goal', scoringTeam, `GOAL! ${scoringTeam} scores! ${score}`, null, player);
+    }
+  };
+
+  const showPlayerSelection = (eventType, team, description) => {
+    setPendingEvent({ eventType, team, description });
+    setShowPlayerDialog(true);
+  };
+
+  const handlePlayerSelected = async (player) => {
+    setShowPlayerDialog(false);
+    if (pendingEvent && player) {
+      const teamName = pendingEvent.team === 'home' ? match.homeTeam : match.awayTeam;
+      
+      // Special handling for goals (already updated score)
+      if (pendingEvent.eventType === 'goal') {
+        const score = `${pendingEvent.homeScore}-${pendingEvent.awayScore}`;
+        await addEvent('goal', teamName, `GOAL! ${teamName} scores! ${score}`, null, player);
+      } else {
+        await addEvent(pendingEvent.eventType, teamName, pendingEvent.description, null, player);
+      }
+    }
+    setPendingEvent(null);
+    setSelectedPlayer(null);
   };
 
   const handleYellowCard = async (team) => {
-    const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
-    await addEvent('yellow_card', teamName, `Yellow card for ${teamName}`);
+    if (players.length > 0) {
+      showPlayerSelection('yellow_card', team, 'Yellow card');
+    } else {
+      const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
+      await addEvent('yellow_card', teamName, `Yellow card for ${teamName}`);
+    }
   };
 
   const handleRedCard = async (team) => {
-    const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
-    await addEvent('red_card', teamName, `Red card! ${teamName} player sent off`);
+    if (players.length > 0) {
+      showPlayerSelection('red_card', team, 'Red card');
+    } else {
+      const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
+      await addEvent('red_card', teamName, `Red card! ${teamName} player sent off`);
+    }
   };
 
   const handleSubstitution = async (team) => {
-    const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
-    await addEvent('substitution', teamName, `Substitution for ${teamName}`);
+    if (players.length > 0) {
+      showPlayerSelection('substitution', team, 'Substitution');
+    } else {
+      const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
+      await addEvent('substitution', teamName, `Substitution for ${teamName}`);
+    }
   };
 
   const handleInjury = async (team) => {
@@ -794,6 +873,40 @@ const MatchDetailScreen = ({ route, navigation }) => {
             }}>Set</Button>
           </Dialog.Actions>
         </Dialog>
+
+        <Dialog visible={showPlayerDialog} onDismiss={() => {
+          setShowPlayerDialog(false);
+          setPendingEvent(null);
+        }}>
+          <Dialog.Title>Select Player</Dialog.Title>
+          <Dialog.Content>
+            <ScrollView style={{ maxHeight: 400 }}>
+              {players.map((player) => (
+                <TouchableOpacity
+                  key={player.id}
+                  style={styles.playerItem}
+                  onPress={() => handlePlayerSelected(player)}
+                >
+                  <View style={styles.playerJersey}>
+                    <Text style={styles.playerJerseyNumber}>
+                      {player.jerseyNumber || '?'}
+                    </Text>
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.playerItemName}>{player.name}</Text>
+                    <Text style={styles.playerItemPosition}>{player.position}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => {
+              setShowPlayerDialog(false);
+              setPendingEvent(null);
+            }}>Cancel</Button>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
     </View>
   );
@@ -1037,6 +1150,39 @@ const styles = StyleSheet.create({
   },
   minuteInput: {
     marginTop: 10,
+  },
+  playerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  playerJersey: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1a472a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  playerJerseyNumber: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  playerInfo: {
+    flex: 1,
+  },
+  playerItemName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1a472a',
+  },
+  playerItemPosition: {
+    fontSize: 12,
+    color: '#666',
   },
 });
 
