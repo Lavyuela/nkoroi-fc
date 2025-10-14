@@ -18,6 +18,7 @@ import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
 import AnalyticsScreen from '../screens/AnalyticsScreen';
 import TestNotificationScreen from '../screens/TestNotificationScreen';
+import PlayerManagementScreen from '../screens/PlayerManagementScreen';
 
 const Stack = createStackNavigator();
 
@@ -55,6 +56,7 @@ const AppNavigator = () => {
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
           <Stack.Screen name="UserManagement" component={UserManagementScreen} />
+          <Stack.Screen name="PlayerManagement" component={PlayerManagementScreen} />
           <Stack.Screen name="Analytics" component={AnalyticsScreen} />
           <Stack.Screen name="TestNotification" component={TestNotificationScreen} />
         </>

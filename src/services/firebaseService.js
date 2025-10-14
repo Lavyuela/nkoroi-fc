@@ -721,6 +721,105 @@ export const sendNotificationToRole = async (role, title, body, data = {}) => {
 };
 
 // ============================================
+// PLAYER MANAGEMENT
+// ============================================
+
+export const addPlayer = async (playerData) => {
+  try {
+    const currentUser = auth().currentUser;
+    if (!currentUser) {
+      throw new Error('Not authenticated');
+    }
+
+    const playerRef = await firestore().collection('players').add({
+      ...playerData,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+      createdBy: currentUser.uid,
+      active: true,
+    });
+
+    console.log(`✅ Player added: ${playerData.name}`);
+    return { success: true, playerId: playerRef.id };
+  } catch (error) {
+    console.error('Error adding player:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const updatePlayer = async (playerId, updates) => {
+  try {
+    await firestore().collection('players').doc(playerId).update({
+      ...updates,
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log(`✅ Player updated: ${playerId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating player:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const deletePlayer = async (playerId) => {
+  try {
+    await firestore().collection('players').doc(playerId).delete();
+    console.log(`✅ Player deleted: ${playerId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting player:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const getAllPlayers = async () => {
+  try {
+    const snapshot = await firestore()
+      .collection('players')
+      .where('active', '==', true)
+      .orderBy('name', 'asc')
+      .get();
+
+    const players = [];
+    snapshot.forEach(doc => {
+      players.push({
+        id: doc.id,
+        ...doc.data(),
+      });
+    });
+
+    return players;
+  } catch (error) {
+    console.error('Error getting players:', error);
+    return [];
+  }
+};
+
+export const getPlayersByPosition = async (position) => {
+  try {
+    const snapshot = await firestore()
+      .collection('players')
+      .where('active', '==', true)
+      .where('position', '==', position)
+      .orderBy('name', 'asc')
+      .get();
+
+    const players = [];
+    snapshot.forEach(doc => {
+      players.push({
+        id: doc.id,
+        ...doc.data(),
+      });
+    });
+
+    return players;
+  } catch (error) {
+    console.error('Error getting players by position:', error);
+    return [];
+  }
+};
+
+// ============================================
 // ANALYTICS
 // ============================================
 
