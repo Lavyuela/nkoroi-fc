@@ -174,6 +174,15 @@ const HomeScreen = ({ navigation }) => {
             </Button>
             <Button
               mode="outlined"
+              onPress={() => navigation.navigate('PlayerManagement')}
+              icon="account-multiple"
+              style={styles.quickActionButton}
+              compact
+            >
+              Players
+            </Button>
+            <Button
+              mode="outlined"
               onPress={() => navigation.navigate('CreateUpdate')}
               icon="newspaper"
               style={styles.quickActionButton}
