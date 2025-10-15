@@ -124,28 +124,7 @@ class NotificationService {
     });
   }
 
-  // Handle background messages
-  static setupBackgroundHandler() {
-    messaging().setBackgroundMessageHandler(async remoteMessage => {
-      console.log('Background message received:', remoteMessage);
-      
-      // Display notification using Notifee
-      await notifee.displayNotification({
-        title: remoteMessage.notification?.title || 'Nkoroi FC',
-        body: remoteMessage.notification?.body || '',
-        android: {
-          channelId: remoteMessage.data?.channelId || 'default',
-          importance: AndroidImportance.HIGH,
-          pressAction: {
-            id: 'default',
-          },
-          smallIcon: 'ic_launcher',
-          color: '#87CEEB',
-        },
-        data: remoteMessage.data,
-      });
-    });
-  }
+  // Handle background messages (removed - must be at top level)
 
   // Handle notification opened (app was closed/background)
   setupNotificationOpenedHandler() {
@@ -187,34 +166,47 @@ class NotificationService {
   async initialize() {
     if (this.initialized) {
       console.log('Notification service already initialized');
-      return;
+      return true;
     }
 
     try {
+      console.log('Starting notification service initialization...');
+      
       // Request permissions
+      console.log('Requesting permissions...');
       const hasPermission = await this.requestPermission();
       if (!hasPermission) {
         console.warn('Notification permission denied');
-        return false;
+        throw new Error('Notification permission denied');
       }
+      console.log('✅ Permission granted');
 
       // Create channels
+      console.log('Creating notification channels...');
       await this.createNotificationChannel();
+      console.log('✅ Channels created');
 
       // Get FCM token
-      await this.getFCMToken();
+      console.log('Getting FCM token...');
+      const token = await this.getFCMToken();
+      if (!token) {
+        throw new Error('Failed to get FCM token');
+      }
+      console.log('✅ FCM token obtained');
 
       // Setup handlers
+      console.log('Setting up handlers...');
       this.setupForegroundHandler();
       this.setupNotificationOpenedHandler();
       this.setupTokenRefreshHandler();
+      console.log('✅ Handlers set up');
 
       this.initialized = true;
-      console.log('Notification service initialized successfully');
+      console.log('✅ Notification service initialized successfully');
       return true;
     } catch (error) {
-      console.error('Notification service initialization error:', error);
-      return false;
+      console.error('❌ Notification service initialization error:', error);
+      throw error;
     }
   }
 
@@ -257,7 +249,25 @@ class NotificationService {
   }
 }
 
-// Setup background handler (must be called at top level)
-NotificationService.setupBackgroundHandler();
+// Setup background handler (must be at top level, outside class)
+messaging().setBackgroundMessageHandler(async remoteMessage => {
+  console.log('Background message received:', remoteMessage);
+  
+  // Display notification using Notifee
+  await notifee.displayNotification({
+    title: remoteMessage.notification?.title || 'Nkoroi FC',
+    body: remoteMessage.notification?.body || '',
+    android: {
+      channelId: remoteMessage.data?.channelId || 'default',
+      importance: AndroidImportance.HIGH,
+      pressAction: {
+        id: 'default',
+      },
+      smallIcon: 'ic_launcher',
+      color: '#87CEEB',
+    },
+    data: remoteMessage.data,
+  });
+});
 
 export default new NotificationService();
