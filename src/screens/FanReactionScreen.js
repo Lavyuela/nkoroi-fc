@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Share as RNShare, TouchableOpacity } from 'react-native';
-import { Text, Appbar, Button, TextInput, Card } from 'react-native-paper';
+import { Text, Appbar, Button, TextInput, Card, FAB } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import firestore from '@react-native-firebase/firestore';
 import ViewShot from 'react-native-view-shot';
@@ -233,20 +233,17 @@ const FanReactionScreen = ({ route, navigation }) => {
 
         {/* Preview */}
         {renderGraphic()}
-
-        {/* Actions */}
-        <View style={styles.actions}>
-          <Button
-            mode="contained"
-            onPress={captureAndShare}
-            style={styles.shareButton}
-            icon="share"
-            disabled={!reactionText.trim()}
-          >
-            Share My Reaction
-          </Button>
-        </View>
       </ScrollView>
+
+      {/* Floating Share Button */}
+      <FAB
+        icon="share"
+        label="Share"
+        style={styles.fab}
+        onPress={captureAndShare}
+        disabled={!reactionText.trim()}
+        color="#fff"
+      />
     </View>
   );
 };
@@ -424,6 +421,12 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   shareButton: {
+    backgroundColor: '#87CEEB',
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 80,
     backgroundColor: '#87CEEB',
   },
 });

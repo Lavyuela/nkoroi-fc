@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Share as RNShare } from 'react-native';
-import { Text, Appbar, Button, Card } from 'react-native-paper';
+import { Text, Appbar, Button, Card, FAB } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import firestore from '@react-native-firebase/firestore';
 import ViewShot from 'react-native-view-shot';
@@ -166,18 +166,16 @@ const MatchResultGraphicScreen = ({ route, navigation }) => {
 
       <ScrollView style={styles.content}>
         {renderGraphic()}
-
-        <View style={styles.actions}>
-          <Button
-            mode="contained"
-            onPress={captureAndShare}
-            style={styles.shareButton}
-            icon="share"
-          >
-            Share Result
-          </Button>
-        </View>
       </ScrollView>
+
+      {/* Floating Share Button */}
+      <FAB
+        icon="share"
+        label="Share Result"
+        style={styles.fab}
+        onPress={captureAndShare}
+        color="#fff"
+      />
     </View>
   );
 };
@@ -305,6 +303,12 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   shareButton: {
+    backgroundColor: '#87CEEB',
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 80,
     backgroundColor: '#87CEEB',
   },
 });

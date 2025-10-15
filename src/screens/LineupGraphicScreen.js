@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
-import { Text, Appbar, Button, TextInput, Menu, Card, Chip } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Image, Share as RNShare } from 'react-native';
+import { Text, Appbar, Button, TextInput, Menu, Card, Chip, Portal, Dialog, FAB } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import firestore from '@react-native-firebase/firestore';
 import ViewShot from 'react-native-view-shot';
-import Share from 'react-native';
 import GraphicTemplate from '../components/GraphicTemplate';
 
 const FORMATIONS = {
@@ -33,6 +32,9 @@ const LineupGraphicScreen = ({ route, navigation }) => {
   const [substitutes, setSubstitutes] = useState([]);
   const [coach, setCoach] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [showPlayerDialog, setShowPlayerDialog] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(null);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -87,28 +89,16 @@ const LineupGraphicScreen = ({ route, navigation }) => {
   };
 
   const selectPlayer = (position, index = null) => {
-    Alert.prompt(
-      'Select Player',
-      'Enter player name or number',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Select',
-          onPress: (search) => {
-            const player = players.find(
-              (p) =>
-                p.name.toLowerCase().includes(search.toLowerCase()) ||
-                p.jerseyNumber?.toString() === search
-            );
-            if (player) {
-              assignPlayer(position, player, index);
-            } else {
-              Alert.alert('Error', 'Player not found');
-            }
-          },
-        },
-      ]
-    );
+    setSelectedPosition(position);
+    setSelectedIndex(index);
+    setShowPlayerDialog(true);
+  };
+
+  const handlePlayerSelect = (player) => {
+    assignPlayer(selectedPosition, player, selectedIndex);
+    setShowPlayerDialog(false);
+    setSelectedPosition(null);
+    setSelectedIndex(null);
   };
 
   const assignPlayer = (position, player, index) => {
@@ -134,7 +124,7 @@ const LineupGraphicScreen = ({ route, navigation }) => {
   const captureAndShare = async () => {
     try {
       const uri = await viewShotRef.current.capture();
-      await Share.share({
+      await RNShare.share({
         title: 'Nkoroi FC Lineup',
         message: `Nkoroi FC Lineup - ${match?.homeTeam} vs ${match?.awayTeam}`,
         url: uri,
@@ -332,19 +322,47 @@ const LineupGraphicScreen = ({ route, navigation }) => {
 
         {/* Preview */}
         {showPreview && renderPreview()}
-
-        {/* Actions */}
-        <View style={styles.actions}>
-          <Button
-            mode="contained"
-            onPress={captureAndShare}
-            style={styles.shareButton}
-            icon="share"
-          >
-            Share Lineup
-          </Button>
-        </View>
       </ScrollView>
+
+      {/* Player Selection Dialog */}
+      <Portal>
+        <Dialog visible={showPlayerDialog} onDismiss={() => setShowPlayerDialog(false)}>
+          <Dialog.Title>Select Player</Dialog.Title>
+          <Dialog.Content>
+            <ScrollView style={{ maxHeight: 400 }}>
+              {players.map((player) => (
+                <TouchableOpacity
+                  key={player.id}
+                  style={styles.playerItem}
+                  onPress={() => handlePlayerSelect(player)}
+                >
+                  <View style={styles.playerJersey}>
+                    <Text style={styles.playerJerseyNumber}>
+                      {player.jerseyNumber || '?'}
+                    </Text>
+                  </View>
+                  <View style={styles.playerInfo}>
+                    <Text style={styles.playerItemName}>{player.name}</Text>
+                    <Text style={styles.playerItemPosition}>{player.position}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowPlayerDialog(false)}>Cancel</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Floating Share Button */}
+      <FAB
+        icon="share"
+        label="Share Lineup"
+        style={styles.fab}
+        onPress={captureAndShare}
+        color="#fff"
+      />
     </View>
   );
 };
@@ -450,6 +468,45 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   shareButton: {
+    backgroundColor: '#87CEEB',
+  },
+  playerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  playerJersey: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1a472a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  playerJerseyNumber: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  playerInfo: {
+    flex: 1,
+  },
+  playerItemName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1a472a',
+  },
+  playerItemPosition: {
+    fontSize: 12,
+    color: '#666',
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 80,
     backgroundColor: '#87CEEB',
   },
 });
