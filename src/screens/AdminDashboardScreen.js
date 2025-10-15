@@ -227,13 +227,13 @@ const AdminDashboardScreen = ({ navigation }) => {
 
             <TouchableOpacity 
               style={styles.toolItem}
-              onPress={() => navigation.navigate('TestNotification')}
+              onPress={() => navigation.navigate('NotificationTest')}
             >
               <Avatar.Icon size={40} icon="bell-ring" style={styles.toolIcon} />
               <View style={styles.toolText}>
                 <Text style={styles.toolTitle}>Test Notifications</Text>
                 <Text style={styles.toolDescription}>
-                  Test push notification system
+                  Test FCM & local notifications
                 </Text>
               </View>
               <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />

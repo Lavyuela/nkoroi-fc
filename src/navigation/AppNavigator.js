@@ -23,6 +23,7 @@ import LineupGraphicScreen from '../screens/LineupGraphicScreen';
 import MatchResultGraphicScreen from '../screens/MatchResultGraphicScreen';
 import PreMatchAnnouncementScreen from '../screens/PreMatchAnnouncementScreen';
 import FanReactionScreen from '../screens/FanReactionScreen';
+import NotificationTestScreen from '../screens/NotificationTestScreen';
 
 const Stack = createStackNavigator();
 
@@ -63,6 +64,7 @@ const AppNavigator = () => {
           <Stack.Screen name="PlayerManagement" component={PlayerManagementScreen} />
           <Stack.Screen name="Analytics" component={AnalyticsScreen} />
           <Stack.Screen name="TestNotification" component={TestNotificationScreen} />
+          <Stack.Screen name="NotificationTest" component={NotificationTestScreen} />
           <Stack.Screen name="LineupGraphic" component={LineupGraphicScreen} />
           <Stack.Screen name="MatchResultGraphic" component={MatchResultGraphicScreen} />
           <Stack.Screen name="PreMatchAnnouncement" component={PreMatchAnnouncementScreen} />
