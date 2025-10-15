@@ -845,6 +845,57 @@ const MatchDetailScreen = ({ route, navigation }) => {
             </Card.Content>
           </Card>
         )}
+
+        {/* Graphics & Sharing */}
+        <Card style={styles.graphicsCard}>
+          <Card.Content>
+            <Text style={styles.graphicsTitle}>📸 Match Graphics</Text>
+            
+            {isAdmin && match.status === 'upcoming' && (
+              <Button
+                mode="outlined"
+                onPress={() => navigation.navigate('PreMatchAnnouncement', { matchId: match.id })}
+                style={styles.graphicsButton}
+                icon="bullhorn"
+              >
+                Pre-Match Announcement
+              </Button>
+            )}
+
+            {isAdmin && (
+              <Button
+                mode="outlined"
+                onPress={() => navigation.navigate('LineupGraphic', { matchId: match.id })}
+                style={styles.graphicsButton}
+                icon="account-group"
+              >
+                Create Lineup Graphic
+              </Button>
+            )}
+
+            {isAdmin && match.status === 'finished' && (
+              <Button
+                mode="outlined"
+                onPress={() => navigation.navigate('MatchResultGraphic', { matchId: match.id })}
+                style={styles.graphicsButton}
+                icon="trophy"
+              >
+                Share Match Result
+              </Button>
+            )}
+
+            {match.status === 'finished' && (
+              <Button
+                mode="contained"
+                onPress={() => navigation.navigate('FanReaction', { matchId: match.id })}
+                style={styles.fanReactionButton}
+                icon="heart"
+              >
+                React & Share
+              </Button>
+            )}
+          </Card.Content>
+        </Card>
       </ScrollView>
 
       <Portal>
@@ -1183,6 +1234,24 @@ const styles = StyleSheet.create({
   playerItemPosition: {
     fontSize: 12,
     color: '#666',
+  },
+  graphicsCard: {
+    marginBottom: 15,
+    elevation: 3,
+  },
+  graphicsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#0277BD',
+  },
+  graphicsButton: {
+    marginBottom: 10,
+    borderColor: '#87CEEB',
+  },
+  fanReactionButton: {
+    marginTop: 5,
+    backgroundColor: '#87CEEB',
   },
 });
 
