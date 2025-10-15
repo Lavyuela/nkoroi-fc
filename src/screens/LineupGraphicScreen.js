@@ -148,7 +148,7 @@ const LineupGraphicScreen = ({ route, navigation }) => {
             >
               <View style={styles.playerCircle}>
                 <Text style={styles.playerNumber}>
-                  {player?.jerseyNumber || '?'}
+                  {player?.jerseyNumber || 'FW'}
                 </Text>
               </View>
               <Text style={styles.playerName}>
@@ -168,7 +168,7 @@ const LineupGraphicScreen = ({ route, navigation }) => {
             >
               <View style={styles.playerCircle}>
                 <Text style={styles.playerNumber}>
-                  {player?.jerseyNumber || '?'}
+                  {player?.jerseyNumber || 'MF'}
                 </Text>
               </View>
               <Text style={styles.playerName}>
@@ -188,7 +188,7 @@ const LineupGraphicScreen = ({ route, navigation }) => {
             >
               <View style={styles.playerCircle}>
                 <Text style={styles.playerNumber}>
-                  {player?.jerseyNumber || '?'}
+                  {player?.jerseyNumber || 'DF'}
                 </Text>
               </View>
               <Text style={styles.playerName}>
