@@ -106,13 +106,12 @@ const FanReactionScreen = ({ route, navigation }) => {
       });
 
       await RNShare.share({
-        title: 'My Reaction',
         message: `${selectedEmoji} ${reactionText}\n\n${match.homeTeam} ${match.homeScore || 0} - ${match.awayScore || 0} ${match.awayTeam}`,
-        url: uri,
+        url: `file://${uri}`,
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to share reaction');
-      console.error(error);
+      console.error('Share error:', error);
+      Alert.alert('Error', 'Failed to share reaction: ' + error.message);
     }
   };
 
@@ -320,100 +319,100 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   teamName: {
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1a472a',
-    marginBottom: 15,
+    marginBottom: 10,
     textAlign: 'center',
   },
   scoreCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#87CEEB',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
   },
   scoreText: {
-    fontSize: 40,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   vs: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#666',
-    marginHorizontal: 15,
+    marginHorizontal: 10,
   },
   reactionOverlay: {
     backgroundColor: 'rgba(135, 206, 235, 0.9)',
-    borderRadius: 15,
-    padding: 20,
-    marginVertical: 20,
+    borderRadius: 10,
+    padding: 15,
+    marginVertical: 15,
     alignItems: 'center',
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
   },
   reactionEmoji: {
-    fontSize: 48,
-    marginBottom: 10,
+    fontSize: 32,
+    marginBottom: 8,
   },
   reactionText: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   fanName: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#FFFFFF',
     fontStyle: 'italic',
   },
   scorersSection: {
     backgroundColor: '#f0f0f0',
-    borderRadius: 12,
-    padding: 15,
-    marginTop: 20,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 15,
   },
   scorersTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#1a472a',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
   scorerItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
   },
   scorerName: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#333',
     fontWeight: '600',
   },
   scorerMinute: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#87CEEB',
     fontWeight: 'bold',
   },
   fullTimeBadge: {
     backgroundColor: '#1a472a',
-    paddingVertical: 10,
-    paddingHorizontal: 25,
-    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 15,
+    borderRadius: 15,
     alignSelf: 'center',
-    marginTop: 20,
+    marginTop: 15,
   },
   fullTimeText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   actions: {

@@ -76,13 +76,12 @@ const MatchResultGraphicScreen = ({ route, navigation }) => {
     try {
       const uri = await viewShotRef.current.capture();
       await RNShare.share({
-        title: 'Match Result',
         message: `${match.homeTeam} ${match.homeScore || 0} - ${match.awayScore || 0} ${match.awayTeam}`,
-        url: uri,
+        url: `file://${uri}`,
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to share result');
-      console.error(error);
+      console.error('Share error:', error);
+      Alert.alert('Error', 'Failed to share result: ' + error.message);
     }
   };
 
@@ -201,56 +200,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 20,
   },
   teamSection: {
     alignItems: 'center',
     flex: 1,
   },
   teamName: {
-    fontSize: 28,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1a472a',
-    marginBottom: 20,
+    marginBottom: 12,
     textAlign: 'center',
   },
   scoreCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#87CEEB',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
+    borderWidth: 3,
     borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    elevation: 4,
   },
   scoreText: {
-    fontSize: 48,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   vs: {
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#666',
-    marginHorizontal: 20,
+    marginHorizontal: 10,
   },
   scorersSection: {
     backgroundColor: '#f0f0f0',
-    borderRadius: 12,
-    padding: 20,
-    marginTop: 30,
+    borderRadius: 8,
+    padding: 15,
+    marginTop: 20,
   },
   scorersTitle: {
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1a472a',
-    marginBottom: 15,
+    marginBottom: 10,
     textAlign: 'center',
   },
   scorerItem: {
@@ -262,12 +257,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ddd',
   },
   scorerName: {
-    fontSize: 18,
+    fontSize: 14,
     color: '#333',
     fontWeight: '600',
   },
   scorerMinute: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#87CEEB',
     fontWeight: 'bold',
   },
@@ -282,20 +277,20 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   venueText: {
-    fontSize: 18,
+    fontSize: 14,
     color: '#666',
   },
   fullTimeBadge: {
     backgroundColor: '#1a472a',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 25,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
     alignSelf: 'center',
-    marginTop: 30,
+    marginTop: 20,
   },
   fullTimeText: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   actions: {

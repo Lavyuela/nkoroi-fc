@@ -125,12 +125,12 @@ const LineupGraphicScreen = ({ route, navigation }) => {
     try {
       const uri = await viewShotRef.current.capture();
       await RNShare.share({
-        title: 'Nkoroi FC Lineup',
         message: `Nkoroi FC Lineup - ${match?.homeTeam} vs ${match?.awayTeam}`,
-        url: uri,
+        url: `file://${uri}`,
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to share lineup');
+      console.error('Share error:', error);
+      Alert.alert('Error', 'Failed to share lineup: ' + error.message);
     }
   };
 

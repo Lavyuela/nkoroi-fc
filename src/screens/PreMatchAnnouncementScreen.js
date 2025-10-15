@@ -58,13 +58,12 @@ const PreMatchAnnouncementScreen = ({ route, navigation }) => {
     try {
       const uri = await viewShotRef.current.capture();
       await RNShare.share({
-        title: 'Match Announcement',
         message: `⚽ ${match.homeTeam} vs ${match.awayTeam}\n📅 ${formatDate(match.matchDate)}\n⏰ ${formatTime(match.matchDate)}\n📍 ${match.venue || 'TBA'}`,
-        url: uri,
+        url: `file://${uri}`,
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to share announcement');
-      console.error(error);
+      console.error('Share error:', error);
+      Alert.alert('Error', 'Failed to share announcement: ' + error.message);
     }
   };
 
@@ -211,22 +210,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   teamName: {
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1a472a',
     textAlign: 'center',
   },
   vsText: {
-    fontSize: 28,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#87CEEB',
-    marginHorizontal: 20,
+    marginHorizontal: 15,
   },
   infoSection: {
     backgroundColor: '#f0f0f0',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
   },
   infoRow: {
     flexDirection: 'row',
@@ -238,30 +237,30 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   infoText: {
-    fontSize: 18,
+    fontSize: 14,
     color: '#333',
     fontWeight: '600',
   },
   messageBox: {
     backgroundColor: '#87CEEB',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
   },
   messageText: {
-    fontSize: 18,
+    fontSize: 14,
     color: '#FFFFFF',
     textAlign: 'center',
     fontWeight: '600',
   },
   ctaBox: {
     backgroundColor: '#1a472a',
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 8,
+    padding: 15,
     alignItems: 'center',
   },
   ctaText: {
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',

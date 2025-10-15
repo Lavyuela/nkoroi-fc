@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, Dimensions } from 'react-native';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 const GraphicTemplate = ({ children, title, subtitle }) => {
   return (
@@ -7,7 +9,7 @@ const GraphicTemplate = ({ children, title, subtitle }) => {
       {/* Header with Logo */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>NKOROI FC</Text>
+          <Text style={styles.logoText}>NKOROI{'\n'}FC</Text>
         </View>
         {title && <Text style={styles.title}>{title}</Text>}
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -28,62 +30,59 @@ const GraphicTemplate = ({ children, title, subtitle }) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: 1080,
+    width: screenWidth - 30,
     backgroundColor: '#FFFFFF',
-    padding: 40,
+    padding: 20,
+    alignSelf: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
-    paddingBottom: 20,
-    borderBottomWidth: 3,
+    marginBottom: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 2,
     borderBottomColor: '#87CEEB',
   },
   logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#87CEEB',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    marginBottom: 15,
+    elevation: 4,
   },
   logoText: {
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
+    lineHeight: 20,
   },
   title: {
-    fontSize: 42,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1a472a',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 28,
+    fontSize: 16,
     color: '#666',
     textAlign: 'center',
   },
   content: {
-    flex: 1,
-    paddingVertical: 30,
+    paddingVertical: 20,
   },
   footer: {
     alignItems: 'center',
-    paddingTop: 20,
+    paddingTop: 15,
     borderTopWidth: 2,
     borderTopColor: '#87CEEB',
-    marginTop: 30,
+    marginTop: 20,
   },
   footerText: {
-    fontSize: 20,
+    fontSize: 14,
     color: '#87CEEB',
     fontWeight: 'bold',
   },
