@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Appbar, Button, Card, Divider, Chip } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Clipboard, ToastAndroid, Platform } from 'react-native';
+import { Text, Appbar, Button, Card, Divider, Chip, IconButton } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService from '../services/NotificationService';
 import { useAuth } from '../context/AuthContext';
@@ -72,17 +72,35 @@ const NotificationTestScreen = ({ navigation }) => {
     }
   };
 
+  const handleCopyToken = async () => {
+    if (!fcmToken) {
+      Alert.alert('No Token', 'Please get FCM token first');
+      return;
+    }
+
+    try {
+      Clipboard.setString(fcmToken);
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('✅ Token copied to clipboard!', ToastAndroid.LONG);
+      } else {
+        Alert.alert('Success', 'Token copied to clipboard!');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to copy token');
+    }
+  };
+
   const handleGetToken = async () => {
     setLoading(true);
     try {
       const token = await NotificationService.getFCMToken();
       if (token) {
         setFcmToken(token);
-        Alert.alert('FCM Token', token, [
-          { text: 'Copy', onPress: () => {
-            // In a real app, you'd use Clipboard API
-            console.log('Token:', token);
-          }},
+        Clipboard.setString(token);
+        if (Platform.OS === 'android') {
+          ToastAndroid.show('✅ Token copied to clipboard!', ToastAndroid.LONG);
+        }
+        Alert.alert('Success', 'FCM Token obtained and copied to clipboard!', [
           { text: 'OK' }
         ]);
       } else {
@@ -223,8 +241,9 @@ const NotificationTestScreen = ({ navigation }) => {
               style={styles.button}
               loading={loading}
               disabled={loading}
+              icon="content-copy"
             >
-              Get FCM Token
+              Get & Copy FCM Token
             </Button>
           </Card.Content>
         </Card>
@@ -295,13 +314,37 @@ const NotificationTestScreen = ({ navigation }) => {
         {/* FCM Token Display */}
         {fcmToken && (
           <Card style={styles.card}>
-            <Card.Title title="Your FCM Token" />
+            <Card.Title 
+              title="Your FCM Token" 
+              right={(props) => (
+                <IconButton
+                  {...props}
+                  icon="content-copy"
+                  onPress={handleCopyToken}
+                />
+              )}
+            />
             <Card.Content>
-              <Text style={styles.tokenText} selectable>
-                {fcmToken}
+              <View style={styles.tokenContainer}>
+                <Text style={styles.tokenText} selectable>
+                  {fcmToken}
+                </Text>
+              </View>
+              
+              <Button
+                mode="contained"
+                icon="content-copy"
+                onPress={handleCopyToken}
+                style={styles.button}
+              >
+                Copy Token to Clipboard
+              </Button>
+              
+              <Text style={styles.tokenNote}>
+                ✅ Token automatically copied when you tap "Get FCM Token"
               </Text>
               <Text style={styles.tokenNote}>
-                Copy this token to send test notifications from Firebase Console
+                📋 Or tap the button above to copy again
               </Text>
             </Card.Content>
           </Card>
@@ -385,18 +428,22 @@ const styles = StyleSheet.create({
     color: '#ff9800',
     fontStyle: 'italic',
   },
-  tokenText: {
-    fontSize: 12,
-    color: '#333',
+  tokenContainer: {
     backgroundColor: '#f0f0f0',
     padding: 10,
     borderRadius: 5,
+    marginBottom: 10,
+  },
+  tokenText: {
+    fontSize: 11,
+    color: '#333',
     fontFamily: 'monospace',
+    lineHeight: 18,
   },
   tokenNote: {
     fontSize: 12,
     color: '#666',
-    marginTop: 10,
+    marginTop: 5,
     fontStyle: 'italic',
   },
 });
