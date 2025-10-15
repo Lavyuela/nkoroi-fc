@@ -123,6 +123,10 @@ const LineupGraphicScreen = ({ route, navigation }) => {
 
   const captureAndShare = async () => {
     try {
+      if (!viewShotRef.current) {
+        Alert.alert('Error', 'Please wait for the preview to load');
+        return;
+      }
       const uri = await viewShotRef.current.capture();
       await RNShare.share({
         message: `Nkoroi FC Lineup - ${match?.homeTeam} vs ${match?.awayTeam}`,
@@ -320,8 +324,10 @@ const LineupGraphicScreen = ({ route, navigation }) => {
           </Card.Content>
         </Card>
 
-        {/* Preview */}
-        {showPreview && renderPreview()}
+        {/* Preview - Always render but hide when not needed */}
+        <View style={showPreview ? {} : { height: 0, overflow: 'hidden' }}>
+          {renderPreview()}
+        </View>
       </ScrollView>
 
       {/* Player Selection Dialog */}

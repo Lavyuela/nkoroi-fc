@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   playerName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1a472a',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   playerMeta: {

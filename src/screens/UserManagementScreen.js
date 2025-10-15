@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1a472a',
+    color: '#FFFFFF',
     marginRight: 8,
   },
   youChip: {
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
   },
   userDate: {
     fontSize: 12,
-    color: '#666',
+    color: '#CCCCCC',
   },
   emptyCard: {
     marginTop: 32,
