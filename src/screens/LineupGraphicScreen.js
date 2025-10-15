@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Image, Share as RNShare } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
+import Share from 'react-native-share';
 import { Text, Appbar, Button, TextInput, Menu, Card, Chip, Portal, Dialog, FAB } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import firestore from '@react-native-firebase/firestore';
@@ -123,18 +124,31 @@ const LineupGraphicScreen = ({ route, navigation }) => {
 
   const captureAndShare = async () => {
     try {
+      // Ensure preview is shown
+      if (!showPreview) {
+        setShowPreview(true);
+        // Wait for preview to render
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
       if (!viewShotRef.current) {
-        Alert.alert('Error', 'Please wait for the preview to load');
+        Alert.alert('Error', 'Unable to generate image. Please try again.');
         return;
       }
+      
       const uri = await viewShotRef.current.capture();
-      await RNShare.share({
+      
+      await Share.open({
+        title: 'Nkoroi FC Lineup',
         message: `Nkoroi FC Lineup - ${match?.homeTeam} vs ${match?.awayTeam}`,
         url: `file://${uri}`,
+        type: 'image/jpeg',
       });
     } catch (error) {
-      console.error('Share error:', error);
-      Alert.alert('Error', 'Failed to share lineup: ' + error.message);
+      if (error.message !== 'User did not share') {
+        console.error('Share error:', error);
+        Alert.alert('Error', 'Failed to share lineup: ' + error.message);
+      }
     }
   };
 

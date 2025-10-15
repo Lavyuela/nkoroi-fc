@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Share as RNShare } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import Share from 'react-native-share';
 import { Text, Appbar, Button, Card, FAB } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import firestore from '@react-native-firebase/firestore';
@@ -74,14 +75,27 @@ const MatchResultGraphicScreen = ({ route, navigation }) => {
 
   const captureAndShare = async () => {
     try {
+      if (!viewShotRef.current) {
+        Alert.alert('Error', 'Unable to generate image. Please try again.');
+        return;
+      }
+      
+      // Wait for view to render
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const uri = await viewShotRef.current.capture();
-      await RNShare.share({
+      
+      await Share.open({
+        title: 'Match Result',
         message: `${match.homeTeam} ${match.homeScore || 0} - ${match.awayScore || 0} ${match.awayTeam}`,
         url: `file://${uri}`,
+        type: 'image/jpeg',
       });
     } catch (error) {
-      console.error('Share error:', error);
-      Alert.alert('Error', 'Failed to share result: ' + error.message);
+      if (error.message !== 'User did not share') {
+        console.error('Share error:', error);
+        Alert.alert('Error', 'Failed to share result: ' + error.message);
+      }
     }
   };
 
