@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Clipboard, ToastAndroid, Platform } from 'react-native';
 import { Text, Appbar, Button, Card, Divider, Chip, IconButton } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NotificationService from '../services/NotificationService';
+import NotificationService from '../services/notificationService';
 import { useAuth } from '../context/AuthContext';
 
 const NotificationTestScreen = ({ navigation }) => {
