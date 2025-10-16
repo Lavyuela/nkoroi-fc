@@ -33,15 +33,15 @@ class NotificationService {
     }
   }
 
-  // Get FCM token
+  // Get FCM token - OPTIONAL (not required for local notifications)
   async getFCMToken() {
     try {
       const token = await messaging().getToken();
-      console.log('FCM Token:', token);
+      console.log('✅ FCM Token obtained:', token.substring(0, 50) + '...');
       await AsyncStorage.setItem('fcm_token', token);
       return token;
     } catch (error) {
-      console.error('Get FCM token error:', error);
+      console.warn('⚠️ FCM token not available (this is OK - local notifications will still work):', error.message);
       return null;
     }
   }
@@ -186,13 +186,18 @@ class NotificationService {
       await this.createNotificationChannel();
       console.log('✅ Channels created');
 
-      // Get FCM token
-      console.log('Getting FCM token...');
-      const token = await this.getFCMToken();
-      if (!token) {
-        throw new Error('Failed to get FCM token');
+      // Get FCM token (optional - not required for local notifications)
+      console.log('Getting FCM token (optional)...');
+      try {
+        const token = await this.getFCMToken();
+        if (token) {
+          console.log('✅ FCM token obtained');
+        } else {
+          console.log('⚠️ No FCM token - using local notifications only');
+        }
+      } catch (error) {
+        console.log('⚠️ FCM token failed - using local notifications only');
       }
-      console.log('✅ FCM token obtained');
 
       // Setup handlers
       console.log('Setting up handlers...');
