@@ -48,6 +48,26 @@ jobs:
           echo "$FIREBASE_SERVICE_ACCOUNT" | base64 --decode > android/app/src/main/assets/firebase-service-account.json
           echo "✅ Firebase Service Account configured for FCM V1"
       
+      - name: 🔑 Setup Release Keystore
+        env:
+          RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          # Create keystore from secret (base64 encoded)
+          echo "$RELEASE_KEYSTORE" | base64 --decode > android/app/release.keystore
+          
+          # Create gradle.properties with signing config
+          cat > android/gradle.properties << EOF
+          MYAPP_RELEASE_STORE_FILE=release.keystore
+          MYAPP_RELEASE_KEY_ALIAS=$KEY_ALIAS
+          MYAPP_RELEASE_STORE_PASSWORD=$KEYSTORE_PASSWORD
+          MYAPP_RELEASE_KEY_PASSWORD=$KEY_PASSWORD
+          EOF
+          
+          echo "✅ Release keystore configured"
+      
       - name: 🔧 Make gradlew executable
         run: chmod +x android/gradlew
       

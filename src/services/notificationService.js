@@ -224,6 +224,13 @@ class NotificationService {
       }
       console.log('✅ FCM token obtained and saved');
 
+      // Subscribe to team updates topic for broadcast notifications
+      console.log('Subscribing to team_updates topic...');
+      await messaging()
+        .subscribeToTopic('team_updates')
+        .then(() => console.log('✅ Subscribed to topic: team_updates'))
+        .catch(err => console.error('❌ Topic subscription failed:', err));
+
       // Setup handlers
       console.log('Setting up handlers...');
       this.setupForegroundHandler();
