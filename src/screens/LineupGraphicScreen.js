@@ -103,6 +103,24 @@ const LineupGraphicScreen = ({ route, navigation }) => {
   };
 
   const assignPlayer = (position, player, index) => {
+    // Check if player is already in lineup (duplicate prevention)
+    const isPlayerInLineup = () => {
+      if (lineup.goalkeeper?.id === player.id) return true;
+      if (lineup.defenders.some(p => p?.id === player.id)) return true;
+      if (lineup.midfielders.some(p => p?.id === player.id)) return true;
+      if (lineup.forwards.some(p => p?.id === player.id)) return true;
+      return false;
+    };
+    
+    if (isPlayerInLineup()) {
+      Alert.alert(
+        '⚠️ Player Already Selected',
+        `${player.name} is already in the lineup. Please select a different player.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
     const newLineup = { ...lineup };
     if (position === 'goalkeeper') {
       newLineup.goalkeeper = player;

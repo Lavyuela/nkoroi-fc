@@ -237,7 +237,7 @@ const AccountScreen = ({ navigation }) => {
         </Button>
 
         <Text style={styles.footer}>
-          Made with ❤️ for Nkoroi FC
+          Nkoroi to the World 🌍
         </Text>
       </ScrollView>
     </View>
