@@ -33,16 +33,33 @@ class NotificationService {
     }
   }
 
-  // Get FCM token - OPTIONAL (not required for local notifications)
-  async getFCMToken() {
+  // Get FCM token and save to Firestore
+  async getFCMToken(userId = null) {
     try {
+      console.log('🔑 Getting FCM token...');
       const token = await messaging().getToken();
+      
+      if (!token) {
+        throw new Error('FCM token is null');
+      }
+      
       console.log('✅ FCM Token obtained:', token.substring(0, 50) + '...');
       await AsyncStorage.setItem('fcm_token', token);
+      
+      // Save to Firestore if userId provided
+      if (userId) {
+        const firestore = require('@react-native-firebase/firestore').default;
+        await firestore().collection('users').doc(userId).set({
+          fcmToken: token,
+          fcmTokenUpdatedAt: firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        console.log('✅ FCM token saved to Firestore for user:', userId);
+      }
+      
       return token;
     } catch (error) {
-      console.warn('⚠️ FCM token not available (this is OK - local notifications will still work):', error.message);
-      return null;
+      console.error('❌ Get FCM token error:', error);
+      throw error;
     }
   }
 
@@ -154,16 +171,29 @@ class NotificationService {
   }
 
   // Handle token refresh
-  setupTokenRefreshHandler() {
+  setupTokenRefreshHandler(userId = null) {
     return messaging().onTokenRefresh(async token => {
-      console.log('FCM token refreshed:', token);
+      console.log('🔄 FCM token refreshed:', token.substring(0, 50) + '...');
       await AsyncStorage.setItem('fcm_token', token);
-      // Send token to your backend if needed
+      
+      // Save to Firestore if userId provided
+      if (userId) {
+        try {
+          const firestore = require('@react-native-firebase/firestore').default;
+          await firestore().collection('users').doc(userId).set({
+            fcmToken: token,
+            fcmTokenUpdatedAt: firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+          console.log('✅ Refreshed FCM token saved to Firestore');
+        } catch (error) {
+          console.error('Error saving refreshed token:', error);
+        }
+      }
     });
   }
 
   // Initialize all handlers
-  async initialize() {
+  async initialize(userId = null) {
     if (this.initialized) {
       console.log('Notification service already initialized');
       return true;
@@ -186,24 +216,19 @@ class NotificationService {
       await this.createNotificationChannel();
       console.log('✅ Channels created');
 
-      // Get FCM token (optional - not required for local notifications)
-      console.log('Getting FCM token (optional)...');
-      try {
-        const token = await this.getFCMToken();
-        if (token) {
-          console.log('✅ FCM token obtained');
-        } else {
-          console.log('⚠️ No FCM token - using local notifications only');
-        }
-      } catch (error) {
-        console.log('⚠️ FCM token failed - using local notifications only');
+      // Get FCM token
+      console.log('Getting FCM token...');
+      const token = await this.getFCMToken(userId);
+      if (!token) {
+        throw new Error('Failed to get FCM token');
       }
+      console.log('✅ FCM token obtained and saved');
 
       // Setup handlers
       console.log('Setting up handlers...');
       this.setupForegroundHandler();
       this.setupNotificationOpenedHandler();
-      this.setupTokenRefreshHandler();
+      this.setupTokenRefreshHandler(userId);
       console.log('✅ Handlers set up');
 
       this.initialized = true;
