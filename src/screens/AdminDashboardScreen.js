@@ -225,7 +225,8 @@ const AdminDashboardScreen = ({ navigation }) => {
 
             <Divider style={styles.divider} />
 
-            <TouchableOpacity 
+            {/* Temporarily disabled - will add back with proper implementation */}
+            {/* <TouchableOpacity 
               style={styles.toolItem}
               onPress={() => navigation.navigate('AdminNotification')}
             >
@@ -237,7 +238,7 @@ const AdminDashboardScreen = ({ navigation }) => {
                 </Text>
               </View>
               <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <Divider style={styles.divider} />
 
