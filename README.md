@@ -1,4 +1,6 @@
-# Nkoroi FC Live Score Mobile App
+# Nkoroi FC - Team Management App
+
+**Latest Update**: All fixes applied - Admin Dashboard, Player Management, Match Events Notifications
 
 A real-time football match score tracking mobile application built with React Native and Firebase. The app allows an admin to update live match scores and send push notifications to all team members.
 
