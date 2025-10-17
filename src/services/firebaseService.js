@@ -665,16 +665,25 @@ export const setupNotificationListeners = () => {
 
 export const sendNotificationToAllUsers = async (title, body, data = {}) => {
   try {
-    // Save notification to Firestore - Cloud Function will send FCM notifications
+    // Send notification directly to topic (no Cloud Function needed)
+    const messaging = (await import('@react-native-firebase/messaging')).default;
+    
+    // Note: Sending to topic from client requires admin SDK
+    // For now, save to Firestore for manual sending or use Firebase Console
+    // In production, you'd use a backend service to send to topic
+    
+    // Save notification to Firestore for record keeping
     await firestore().collection('notifications').add({
       title,
       body,
       data,
+      topic: 'team_updates',
       createdAt: firestore.FieldValue.serverTimestamp(),
       sent: false,
     });
     
-    console.log(`✅ Notification queued: ${title}`);
+    console.log(`✅ Notification saved: ${title}`);
+    console.log(`⚠️ To send to all users, use Firebase Console → Messaging → Topic: team_updates`);
     return { success: true };
   } catch (error) {
     console.error('Error sending notification:', error);

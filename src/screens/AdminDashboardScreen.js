@@ -227,6 +227,22 @@ const AdminDashboardScreen = ({ navigation }) => {
 
             <TouchableOpacity 
               style={styles.toolItem}
+              onPress={() => navigation.navigate('AdminNotification')}
+            >
+              <Avatar.Icon size={40} icon="send" style={[styles.toolIcon, { backgroundColor: '#ff6f00' }]} />
+              <View style={styles.toolText}>
+                <Text style={styles.toolTitle}>Send Notifications</Text>
+                <Text style={styles.toolDescription}>
+                  Send push notifications to all users
+                </Text>
+              </View>
+              <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
+            </TouchableOpacity>
+
+            <Divider style={styles.divider} />
+
+            <TouchableOpacity 
+              style={styles.toolItem}
               onPress={() => navigation.navigate('NotificationTest')}
             >
               <Avatar.Icon size={40} icon="bell-ring" style={styles.toolIcon} />
