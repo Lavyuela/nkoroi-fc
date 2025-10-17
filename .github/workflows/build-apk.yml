@@ -70,6 +70,21 @@ jobs:
           echo "📄 gradle.properties contents:"
           cat android/gradle.properties
       
+      - name: 🔍 Verify Keystore SHA Fingerprints
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "📋 Checking SHA fingerprints of the keystore..."
+          keytool -list -v -keystore android/app/release.keystore \
+            -alias $KEY_ALIAS \
+            -storepass $KEYSTORE_PASSWORD \
+            -keypass $KEY_PASSWORD | grep -E "SHA1|SHA256"
+          echo ""
+          echo "Expected SHA1: 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25"
+          echo "Expected SHA256: FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C"
+      
       - name: 🔧 Make gradlew executable
         run: chmod +x android/gradlew
       
