@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, PermissionsAndroid, Platform } from 'react-native';
 import Share from 'react-native-share';
 import { Text, Appbar, Button, TextInput, Card, FAB } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import firestore from '@react-native-firebase/firestore';
 import ViewShot from 'react-native-view-shot';
 import GraphicTemplate from '../components/GraphicTemplate';
+import RNFS from 'react-native-fs';
 
 const PreMatchAnnouncementScreen = ({ route, navigation }) => {
   const { matchId } = route.params;
@@ -53,6 +54,50 @@ const PreMatchAnnouncementScreen = ({ route, navigation }) => {
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  const requestStoragePermission = async () => {
+    if (Platform.OS !== 'android') return true;
+    
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission',
+          message: 'App needs access to save images to your gallery',
+          buttonPositive: 'OK',
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  };
+
+  const saveGraphic = async () => {
+    try {
+      if (!viewShotRef.current) {
+        Alert.alert('Error', 'Unable to generate image. Please try again.');
+        return;
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const uri = await viewShotRef.current.capture();
+      const timestamp = Date.now();
+      const fileName = `NkoroiFC_Announcement_${timestamp}.jpg`;
+      // Save to app's internal document directory
+      const destPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+      
+      await RNFS.copyFile(uri, destPath);
+      
+      Alert.alert('Success', 'Announcement saved in app!', [
+        { text: 'OK' }
+      ]);
+    } catch (error) {
+      console.error('Save error:', error);
+      Alert.alert('Error', 'Failed to save announcement: ' + error.message);
+    }
   };
 
   const captureAndShare = async () => {
@@ -178,7 +223,14 @@ const PreMatchAnnouncementScreen = ({ route, navigation }) => {
         {renderGraphic()}
       </ScrollView>
 
-      {/* Floating Share Button */}
+      {/* Floating Action Buttons */}
+      <FAB
+        icon="content-save"
+        label="Save"
+        style={[styles.fab, { bottom: 150 }]}
+        onPress={saveGraphic}
+        color="#fff"
+      />
       <FAB
         icon="share"
         label="Share"

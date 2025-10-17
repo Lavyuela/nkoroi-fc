@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import firestore from '@react-native-firebase/firestore';
 
 const AdminDashboardScreen = ({ navigation }) => {
-  const { isSuperAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin } = useAuth();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalMatches: 0,
@@ -18,12 +18,12 @@ const AdminDashboardScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (!isSuperAdmin) {
+    if (!isAdmin) {
       navigation.replace('Home');
       return;
     }
     loadDashboardData();
-  }, [isSuperAdmin]);
+  }, [isAdmin]);
 
   const loadDashboardData = async () => {
     try {

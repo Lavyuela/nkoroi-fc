@@ -332,88 +332,94 @@ exports.onAdminNotificationCreated = functions.firestore
 /**
  * Trigger: When a match event is added (substitution, corner, etc.)
  * Action: Send push notification for the event
+ * Note: Events are stored in the events array of the match document
  */
 exports.onMatchEventAdded = functions.firestore
-  .document('matches/{matchId}/events/{eventId}')
-  .onCreate(async (snap, context) => {
+  .document('matches/{matchId}')
+  .onUpdate(async (change, context) => {
     try {
-      const event = snap.data();
+      const before = change.before.data();
+      const after = change.after.data();
       const matchId = context.params.matchId;
       
-      console.log('⚽ Match event added:', event.type);
+      // Check if events array changed
+      const beforeEvents = before.events || [];
+      const afterEvents = after.events || [];
       
-      // Get match details
-      const matchDoc = await admin.firestore().collection('matches').doc(matchId).get();
-      if (!matchDoc.exists) {
-        console.log('Match not found');
-        return null;
+      if (afterEvents.length <= beforeEvents.length) {
+        return null; // No new event added
       }
       
-      const match = matchDoc.data();
+      // Get the newly added event (last one in array)
+      const newEvent = afterEvents[afterEvents.length - 1];
+      
+      console.log('⚽ Match event added:', newEvent.type);
       
       // Don't send notifications for goals (already handled by onMatchUpdated)
-      if (event.type === 'goal') {
+      if (newEvent.type === 'goal') {
         return null;
       }
+      
+      const match = after;
       
       let title = '';
       let body = '';
       let emoji = '';
       
       // Format notification based on event type
-      switch (event.type) {
+      switch (newEvent.type) {
         case 'yellow_card':
           emoji = '🟨';
           title = `${emoji} Yellow Card`;
-          body = event.description || `Yellow card in ${match.homeTeam} vs ${match.awayTeam}`;
+          body = newEvent.description || `Yellow card in ${match.homeTeam} vs ${match.awayTeam}`;
           break;
         case 'red_card':
           emoji = '🟥';
           title = `${emoji} Red Card!`;
-          body = event.description || `Red card! Player sent off in ${match.homeTeam} vs ${match.awayTeam}`;
+          body = newEvent.description || `Red card! Player sent off in ${match.homeTeam} vs ${match.awayTeam}`;
           break;
         case 'substitution':
           emoji = '🔄';
           title = `${emoji} Substitution`;
-          body = event.description || `Substitution in ${match.homeTeam} vs ${match.awayTeam}`;
+          body = newEvent.description || `Substitution in ${match.homeTeam} vs ${match.awayTeam}`;
           break;
         case 'corner':
           emoji = '🚩';
           title = `${emoji} Corner Kick`;
-          body = event.description || `Corner kick for ${event.team}`;
+          body = newEvent.description || `Corner kick for ${newEvent.team}`;
           break;
         case 'free_kick':
           emoji = '⚽';
           title = `${emoji} Free Kick`;
-          body = event.description || `Free kick for ${event.team}`;
+          body = newEvent.description || `Free kick for ${newEvent.team}`;
           break;
         case 'penalty':
           emoji = '🎯';
           title = `${emoji} Penalty!`;
-          body = event.description || `Penalty awarded to ${event.team}`;
+          body = newEvent.description || `Penalty awarded to ${newEvent.team}`;
           break;
         case 'offside':
           emoji = '🚫';
           title = `${emoji} Offside`;
-          body = event.description || `Offside called`;
+          body = newEvent.description || `Offside called`;
           break;
         case 'injury':
           emoji = '🏥';
           title = `${emoji} Injury`;
-          body = event.description || `Player injury in ${match.homeTeam} vs ${match.awayTeam}`;
+          body = newEvent.description || `Player injury in ${match.homeTeam} vs ${match.awayTeam}`;
           break;
         default:
           // For any other event types
           title = `⚽ Match Event`;
-          body = event.description || `Event in ${match.homeTeam} vs ${match.awayTeam}`;
+          body = newEvent.description || `Event in ${match.homeTeam} vs ${match.awayTeam}`;
       }
       
       // Send push notification to topic
       await sendTopicNotification('team_updates', title, body, {
         matchId: matchId,
-        type: `match_event_${event.type}`,
+        type: `match_event_${newEvent.type}`,
         channelId: 'match_updates',
-        eventType: event.type,
+        eventType: newEvent.type,
       });
       
       // Also create Firestore notification
@@ -422,15 +428,15 @@ exports.onMatchEventAdded = functions.firestore
         body: body,
         data: {
           matchId: matchId,
-          type: `match_event_${event.type}`,
-          eventType: event.type,
+          type: `match_event_${newEvent.type}`,
+          eventType: newEvent.type,
         },
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         read: false,
         type: 'match_event',
       });
       
-      console.log(`✅ ${event.type} notification sent`);
+      console.log(`✅ ${newEvent.type} notification sent`);
       
       return null;
     } catch (error) {

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Image, PermissionsAndroid, Platform } from 'react-native';
 import Share from 'react-native-share';
 import { Text, Appbar, Button, TextInput, Menu, Card, Chip, Portal, Dialog, FAB } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import firestore from '@react-native-firebase/firestore';
 import ViewShot from 'react-native-view-shot';
 import GraphicTemplate from '../components/GraphicTemplate';
+import RNFS from 'react-native-fs';
 
 const FORMATIONS = {
   '4-4-2': { defenders: 4, midfielders: 4, forwards: 2 },
@@ -138,6 +139,60 @@ const LineupGraphicScreen = ({ route, navigation }) => {
       midfielders: Array(form.midfielders).fill(null),
       forwards: Array(form.forwards).fill(null),
     });
+  };
+
+  const requestStoragePermission = async () => {
+    if (Platform.OS !== 'android') return true;
+    
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission',
+          message: 'App needs access to save images to your gallery',
+          buttonPositive: 'OK',
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  };
+
+  const saveGraphic = async () => {
+    try {
+      if (!lineup.goalkeeper) {
+        Alert.alert('Incomplete Lineup', 'Please select a goalkeeper before saving.');
+        return;
+      }
+      
+      // Ensure preview is shown
+      if (!showPreview) {
+        setShowPreview(true);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      if (!viewShotRef.current) {
+        Alert.alert('Error', 'Unable to generate image. Please try again.');
+        return;
+      }
+      
+      const uri = await viewShotRef.current.capture();
+      const timestamp = Date.now();
+      const fileName = `NkoroiFC_Lineup_${timestamp}.jpg`;
+      // Save to app's internal document directory
+      const destPath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+      
+      await RNFS.copyFile(uri, destPath);
+      
+      Alert.alert('Success', 'Lineup saved in app!', [
+        { text: 'OK' }
+      ]);
+    } catch (error) {
+      console.error('Save error:', error);
+      Alert.alert('Error', 'Failed to save lineup: ' + error.message);
+    }
   };
 
   const captureAndShare = async () => {
@@ -393,10 +448,17 @@ const LineupGraphicScreen = ({ route, navigation }) => {
         </Dialog>
       </Portal>
 
-      {/* Floating Share Button */}
+      {/* Floating Action Buttons */}
+      <FAB
+        icon="content-save"
+        label="Save"
+        style={[styles.fab, { bottom: 150 }]}
+        onPress={saveGraphic}
+        color="#fff"
+      />
       <FAB
         icon="share"
-        label="Share Lineup"
+        label="Share"
         style={styles.fab}
         onPress={captureAndShare}
         color="#fff"

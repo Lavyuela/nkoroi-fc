@@ -321,28 +321,31 @@ const MatchDetailScreen = ({ route, navigation }) => {
   };
 
   const handleYellowCard = async (team) => {
-    if (players.length > 0) {
+    const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
+    // Only show player selection for home team (Nkoroi FC)
+    if (team === 'home' && players.length > 0) {
       showPlayerSelection('yellow_card', team, 'Yellow card');
     } else {
-      const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
       await addEvent('yellow_card', teamName, `Yellow card for ${teamName}`);
     }
   };
 
   const handleRedCard = async (team) => {
-    if (players.length > 0) {
+    const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
+    // Only show player selection for home team (Nkoroi FC)
+    if (team === 'home' && players.length > 0) {
       showPlayerSelection('red_card', team, 'Red card');
     } else {
-      const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
       await addEvent('red_card', teamName, `Red card! ${teamName} player sent off`);
     }
   };
 
   const handleSubstitution = async (team) => {
-    if (players.length > 0) {
+    const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
+    // Only show player selection for home team (Nkoroi FC)
+    if (team === 'home' && players.length > 0) {
       showPlayerSelection('substitution', team, 'Substitution');
     } else {
-      const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
       await addEvent('substitution', teamName, `Substitution for ${teamName}`);
     }
   };
