@@ -329,4 +329,114 @@ exports.onAdminNotificationCreated = functions.firestore
     }
   });
 
+/**
+ * Trigger: When a match event is added (substitution, corner, etc.)
+ * Action: Send push notification for the event
+ */
+exports.onMatchEventAdded = functions.firestore
+  .document('matches/{matchId}/events/{eventId}')
+  .onCreate(async (snap, context) => {
+    try {
+      const event = snap.data();
+      const matchId = context.params.matchId;
+      
+      console.log('⚽ Match event added:', event.type);
+      
+      // Get match details
+      const matchDoc = await admin.firestore().collection('matches').doc(matchId).get();
+      if (!matchDoc.exists) {
+        console.log('Match not found');
+        return null;
+      }
+      
+      const match = matchDoc.data();
+      
+      // Don't send notifications for goals (already handled by onMatchUpdated)
+      if (event.type === 'goal') {
+        return null;
+      }
+      
+      let title = '';
+      let body = '';
+      let emoji = '';
+      
+      // Format notification based on event type
+      switch (event.type) {
+        case 'yellow_card':
+          emoji = '🟨';
+          title = `${emoji} Yellow Card`;
+          body = event.description || `Yellow card in ${match.homeTeam} vs ${match.awayTeam}`;
+          break;
+        case 'red_card':
+          emoji = '🟥';
+          title = `${emoji} Red Card!`;
+          body = event.description || `Red card! Player sent off in ${match.homeTeam} vs ${match.awayTeam}`;
+          break;
+        case 'substitution':
+          emoji = '🔄';
+          title = `${emoji} Substitution`;
+          body = event.description || `Substitution in ${match.homeTeam} vs ${match.awayTeam}`;
+          break;
+        case 'corner':
+          emoji = '🚩';
+          title = `${emoji} Corner Kick`;
+          body = event.description || `Corner kick for ${event.team}`;
+          break;
+        case 'free_kick':
+          emoji = '⚽';
+          title = `${emoji} Free Kick`;
+          body = event.description || `Free kick for ${event.team}`;
+          break;
+        case 'penalty':
+          emoji = '🎯';
+          title = `${emoji} Penalty!`;
+          body = event.description || `Penalty awarded to ${event.team}`;
+          break;
+        case 'offside':
+          emoji = '🚫';
+          title = `${emoji} Offside`;
+          body = event.description || `Offside called`;
+          break;
+        case 'injury':
+          emoji = '🏥';
+          title = `${emoji} Injury`;
+          body = event.description || `Player injury in ${match.homeTeam} vs ${match.awayTeam}`;
+          break;
+        default:
+          // For any other event types
+          title = `⚽ Match Event`;
+          body = event.description || `Event in ${match.homeTeam} vs ${match.awayTeam}`;
+      }
+      
+      // Send push notification to topic
+      await sendTopicNotification('team_updates', title, body, {
+        matchId: matchId,
+        type: `match_event_${event.type}`,
+        channelId: 'match_updates',
+        eventType: event.type,
+      });
+      
+      // Also create Firestore notification
+      await admin.firestore().collection('notifications').add({
+        title: title,
+        body: body,
+        data: {
+          matchId: matchId,
+          type: `match_event_${event.type}`,
+          eventType: event.type,
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        read: false,
+        type: 'match_event',
+      });
+      
+      console.log(`✅ ${event.type} notification sent`);
+      
+      return null;
+    } catch (error) {
+      console.error('❌ Error in onMatchEventAdded:', error);
+      return null;
+    }
+  });
+
 console.log('🚀 Firebase Cloud Functions loaded successfully');

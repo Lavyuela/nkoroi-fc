@@ -281,7 +281,8 @@ const MatchDetailScreen = ({ route, navigation }) => {
       awayScore: newAwayScore,
     });
     
-    if (players.length > 0 && !player) {
+    // Only show player selection for home team (Nkoroi FC)
+    if (team === 'home' && players.length > 0 && !player) {
       // Show player selection for goal
       setPendingEvent({ 
         eventType: 'goal', 
@@ -292,6 +293,7 @@ const MatchDetailScreen = ({ route, navigation }) => {
       });
       setShowPlayerDialog(true);
     } else {
+      // For away team or when no players, just add the event directly
       await addEvent('goal', scoringTeam, `GOAL! ${scoringTeam} scores! ${score}`, null, player);
     }
   };
