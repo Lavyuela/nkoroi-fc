@@ -85,6 +85,23 @@ const AccountScreen = ({ navigation }) => {
           </Card.Content>
         </Card>
 
+        {/* Admin Dashboard Button */}
+        {isAdmin && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Button
+                mode="contained"
+                icon="view-dashboard"
+                onPress={() => navigation.navigate('AdminDashboard')}
+                style={styles.dashboardButton}
+                contentStyle={styles.dashboardButtonContent}
+              >
+                Open Admin Dashboard
+              </Button>
+            </Card.Content>
+          </Card>
+        )}
+
         {/* Admin Features */}
         {isAdmin && (
           <Card style={styles.card}>
@@ -331,6 +348,14 @@ const styles = StyleSheet.create({
   },
   divider: {
     marginVertical: 10,
+  },
+  dashboardButton: {
+    marginTop: 5,
+    marginBottom: 5,
+    backgroundColor: '#1a472a',
+  },
+  dashboardButtonContent: {
+    paddingVertical: 8,
   },
   settingsButton: {
     marginTop: 10,

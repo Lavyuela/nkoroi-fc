@@ -244,6 +244,22 @@ const AdminDashboardScreen = ({ navigation }) => {
 
             <TouchableOpacity 
               style={styles.toolItem}
+              onPress={() => navigation.navigate('PlayerManagement')}
+            >
+              <Avatar.Icon size={40} icon="account-group" style={[styles.toolIcon, { backgroundColor: '#2196F3' }]} />
+              <View style={styles.toolText}>
+                <Text style={styles.toolTitle}>Player Management</Text>
+                <Text style={styles.toolDescription}>
+                  Add, edit, and manage team players
+                </Text>
+              </View>
+              <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
+            </TouchableOpacity>
+
+            <Divider style={styles.divider} />
+
+            <TouchableOpacity 
+              style={styles.toolItem}
               onPress={() => navigation.navigate('NotificationTest')}
             >
               <Avatar.Icon size={40} icon="bell-ring" style={styles.toolIcon} />
