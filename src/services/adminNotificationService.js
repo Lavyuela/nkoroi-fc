@@ -3,7 +3,12 @@
  * Functions for admins to send custom notifications to users
  */
 
-import functions from '@react-native-firebase/functions';
+let functions = null;
+try {
+  functions = require('@react-native-firebase/functions').default;
+} catch (error) {
+  console.warn('Firebase Functions not available:', error.message);
+}
 
 class AdminNotificationService {
   /**
@@ -16,6 +21,10 @@ class AdminNotificationService {
    */
   async sendCustomNotification(title, body, topic = 'team_updates', channelId = 'default') {
     try {
+      if (!functions) {
+        throw new Error('Firebase Functions not available. Please update the app.');
+      }
+
       console.log('📤 Sending custom notification...');
       console.log('Title:', title);
       console.log('Body:', body);
