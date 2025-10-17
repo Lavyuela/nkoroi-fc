@@ -279,4 +279,54 @@ exports.sendTestNotification = functions.https.onRequest(async (req, res) => {
   }
 });
 
+/**
+ * Trigger: When admin creates notification in adminNotifications collection
+ * Action: Send push notification to topic
+ */
+exports.onAdminNotificationCreated = functions.firestore
+  .document('adminNotifications/{notificationId}')
+  .onCreate(async (snap, context) => {
+    try {
+      const notification = snap.data();
+      const notificationId = context.params.notificationId;
+      
+      console.log('📢 Admin notification created:', notificationId);
+      
+      const title = notification.title || 'Nkoroi FC';
+      const body = notification.body || 'New notification';
+      const topic = notification.topic || 'team_updates';
+      
+      // Send push notification to topic
+      await sendTopicNotification(topic, title, body, {
+        type: 'admin_custom',
+        channelId: 'default',
+      });
+      
+      // Mark as sent
+      await snap.ref.update({
+        sent: true,
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      
+      // Also create in notifications collection for in-app display
+      await admin.firestore().collection('notifications').add({
+        title: title,
+        body: body,
+        data: {
+          type: 'admin_custom',
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        read: false,
+        type: 'custom',
+      });
+      
+      console.log('✅ Admin notification sent successfully');
+      
+      return null;
+    } catch (error) {
+      console.error('❌ Error in onAdminNotificationCreated:', error);
+      return null;
+    }
+  });
+
 console.log('🚀 Firebase Cloud Functions loaded successfully');
