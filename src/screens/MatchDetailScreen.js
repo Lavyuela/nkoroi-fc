@@ -25,6 +25,8 @@ const MatchDetailScreen = ({ route, navigation }) => {
   const [showPlayerDialog, setShowPlayerDialog] = useState(false);
   const [pendingEvent, setPendingEvent] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [substitutionStep, setSubstitutionStep] = useState(null); // 'out' or 'in'
+  const [playerOut, setPlayerOut] = useState(null);
 
   useEffect(() => {
     loadMatch();
@@ -312,6 +314,28 @@ const MatchDetailScreen = ({ route, navigation }) => {
   };
 
   const handlePlayerSelected = async (player) => {
+    // Handle substitution two-step process
+    if (pendingEvent && pendingEvent.type === 'substitution') {
+      if (substitutionStep === 'out') {
+        // First step: player going off
+        setPlayerOut(player);
+        setSubstitutionStep('in');
+        // Keep dialog open for second selection
+        return;
+      } else if (substitutionStep === 'in' && playerOut) {
+        // Second step: player coming in
+        setShowPlayerDialog(false);
+        const teamName = pendingEvent.teamName;
+        const description = `🔄 ${playerOut.name} OFF ➡️ ${player.name} ON`;
+        await addEvent('substitution', teamName, description, null, player, playerOut);
+        setSubstitutionStep(null);
+        setPlayerOut(null);
+        setPendingEvent(null);
+        return;
+      }
+    }
+    
+    // Handle other events normally
     setShowPlayerDialog(false);
     if (pendingEvent && player) {
       const teamName = pendingEvent.team === 'home' ? match.homeTeam : match.awayTeam;
@@ -326,6 +350,8 @@ const MatchDetailScreen = ({ route, navigation }) => {
     }
     setPendingEvent(null);
     setSelectedPlayer(null);
+    setSubstitutionStep(null);
+    setPlayerOut(null);
   };
 
   const handleYellowCard = async (team) => {
@@ -361,7 +387,10 @@ const MatchDetailScreen = ({ route, navigation }) => {
     
     // Only show player selection for Nkoroi FC
     if (isNkoroiFC && players.length > 0) {
-      showPlayerSelection('substitution', team, 'Substitution');
+      setSubstitutionStep('out');
+      setPlayerOut(null);
+      setPendingEvent({ type: 'substitution', team, teamName });
+      setShowPlayerDialog(true);
     } else {
       await addEvent('substitution', teamName, `Substitution for ${teamName}`);
     }
@@ -950,14 +979,20 @@ const MatchDetailScreen = ({ route, navigation }) => {
         <Dialog visible={showPlayerDialog} onDismiss={() => {
           setShowPlayerDialog(false);
           setPendingEvent(null);
+          setSubstitutionStep(null);
+          setPlayerOut(null);
         }}>
-          <Dialog.Title>Select Player</Dialog.Title>
+          <Dialog.Title>
+            {substitutionStep === 'out' ? '🔄 Select Player Going OFF' : 
+             substitutionStep === 'in' ? `🔄 Select Player Coming IN (${playerOut?.name} going off)` : 
+             'Select Player'}
+          </Dialog.Title>
           <Dialog.Content>
             {match && match.lineup && match.lineup.length > 0 && (
               <Card style={{ marginBottom: 10, backgroundColor: '#e3f2fd' }}>
                 <Card.Content>
                   <Text style={{ fontSize: 12, color: '#1976d2' }}>
-                    Showing lineup players only ({players.length} players)
+                    ✓ Showing lineup players only ({players.length} players)
                   </Text>
                 </Card.Content>
               </Card>
@@ -993,6 +1028,8 @@ const MatchDetailScreen = ({ route, navigation }) => {
             <Button onPress={() => {
               setShowPlayerDialog(false);
               setPendingEvent(null);
+              setSubstitutionStep(null);
+              setPlayerOut(null);
             }}>Cancel</Button>
           </Dialog.Actions>
         </Dialog>

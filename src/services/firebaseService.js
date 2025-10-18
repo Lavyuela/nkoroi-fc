@@ -632,36 +632,8 @@ export const requestNotificationPermission = async () => {
   }
 };
 
-export const setupNotificationListeners = () => {
-  // Foreground messages - Show notification when app is open
-  messaging().onMessage(async (remoteMessage) => {
-    console.log('📬 Foreground FCM notification received:', remoteMessage);
-    
-    // Show local notification using notifee
-    const notifee = require('@notifee/react-native').default;
-    await notifee.displayNotification({
-      title: remoteMessage.notification?.title || 'New Notification',
-      body: remoteMessage.notification?.body || '',
-      data: remoteMessage.data || {},
-      android: {
-        channelId: 'default',
-        sound: 'default',
-        pressAction: {
-          id: 'default',
-        },
-      },
-    });
-    
-    console.log('✅ Notification displayed');
-  });
-
-  // Background messages - Android handles these automatically
-  messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-    console.log('📬 Background FCM notification received:', remoteMessage);
-    // Android will show this automatically, we just log it
-    return Promise.resolve();
-  });
-};
+// Notification listeners are now handled in notificationService.js
+// This prevents duplicate notifications
 
 export const sendNotificationToAllUsers = async (title, body, data = {}) => {
   try {

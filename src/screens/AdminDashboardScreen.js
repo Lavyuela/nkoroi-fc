@@ -101,10 +101,12 @@ const AdminDashboardScreen = ({ navigation }) => {
         <Card style={styles.welcomeCard}>
           <Card.Content>
             <Text variant="headlineSmall" style={styles.welcomeTitle}>
-              👑 Welcome, Super Admin!
+              {isSuperAdmin ? '👑 Welcome, Super Admin!' : '⚽ Welcome, Admin!'}
             </Text>
             <Text style={styles.welcomeText}>
-              Full system control: Manage users, view analytics, and oversee all operations
+              {isSuperAdmin 
+                ? 'Full system control: Manage users, view analytics, and oversee all operations'
+                : 'Manage matches, players, and create exciting content for fans'}
             </Text>
           </Card.Content>
         </Card>
@@ -113,70 +115,57 @@ const AdminDashboardScreen = ({ navigation }) => {
 
         <View style={styles.statsGrid}>
           <StatCard
-            title="Total Users"
-            value={stats.totalUsers}
-            icon="account-group"
-            color="#4FC3F7"
-            onPress={() => navigation.navigate('UserManagement')}
-          />
-          <StatCard
             title="Total Matches"
             value={stats.totalMatches}
             icon="soccer"
             color="#66bb6a"
           />
-        </View>
-
-        <View style={styles.statsGrid}>
           <StatCard
             title="Live Matches"
             value={stats.liveMatches}
             icon="play-circle"
             color="#f44336"
           />
+        </View>
+
+        <View style={styles.statsGrid}>
           <StatCard
             title="Upcoming"
             value={stats.upcomingMatches}
             icon="calendar-clock"
             color="#ff9800"
           />
-        </View>
-
-        <View style={styles.statsGrid}>
           <StatCard
             title="Finished"
             value={stats.finishedMatches}
             icon="check-circle"
             color="#9e9e9e"
           />
-          <StatCard
-            title="Predictions"
-            value={stats.totalPredictions}
-            icon="crystal-ball"
-            color="#9c27b0"
-          />
         </View>
+
+        {isSuperAdmin && (
+          <View style={styles.statsGrid}>
+            <StatCard
+              title="Total Users"
+              value={stats.totalUsers}
+              icon="account-group"
+              color="#4FC3F7"
+              onPress={() => navigation.navigate('UserManagement')}
+            />
+            <StatCard
+              title="Predictions"
+              value={stats.totalPredictions}
+              icon="crystal-ball"
+              color="#9c27b0"
+            />
+          </View>
+        )}
 
         <Text style={styles.sectionTitle}>🛠️ Admin Tools</Text>
 
         <Card style={styles.toolCard}>
           <Card.Content>
-            <TouchableOpacity 
-              style={styles.toolItem}
-              onPress={() => navigation.navigate('UserManagement')}
-            >
-              <Avatar.Icon size={40} icon="account-cog" style={styles.toolIcon} />
-              <View style={styles.toolText}>
-                <Text style={styles.toolTitle}>User Management</Text>
-                <Text style={styles.toolDescription}>
-                  View users, grant admin access, manage accounts
-                </Text>
-              </View>
-              <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
-            </TouchableOpacity>
-
-            <Divider style={styles.divider} />
-
+            {/* Player Management - All Admins */}
             <TouchableOpacity 
               style={styles.toolItem}
               onPress={() => navigation.navigate('PlayerManagement')}
@@ -193,27 +182,12 @@ const AdminDashboardScreen = ({ navigation }) => {
 
             <Divider style={styles.divider} />
 
-            <TouchableOpacity 
-              style={styles.toolItem}
-              onPress={() => navigation.navigate('Analytics')}
-            >
-              <Avatar.Icon size={40} icon="chart-line" style={styles.toolIcon} />
-              <View style={styles.toolText}>
-                <Text style={styles.toolTitle}>Analytics</Text>
-                <Text style={styles.toolDescription}>
-                  View detailed statistics and user engagement
-                </Text>
-              </View>
-              <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
-            </TouchableOpacity>
-
-            <Divider style={styles.divider} />
-
+            {/* Create Match - All Admins */}
             <TouchableOpacity 
               style={styles.toolItem}
               onPress={() => navigation.navigate('CreateMatch')}
             >
-              <Avatar.Icon size={40} icon="plus-circle" style={styles.toolIcon} />
+              <Avatar.Icon size={40} icon="plus-circle" style={[styles.toolIcon, { backgroundColor: '#66bb6a' }]} />
               <View style={styles.toolText}>
                 <Text style={styles.toolTitle}>Create Match</Text>
                 <Text style={styles.toolDescription}>
@@ -225,6 +199,7 @@ const AdminDashboardScreen = ({ navigation }) => {
 
             <Divider style={styles.divider} />
 
+            {/* Saved Graphics - All Admins */}
             <TouchableOpacity 
               style={styles.toolItem}
               onPress={() => navigation.navigate('SavedGraphics')}
@@ -238,6 +213,60 @@ const AdminDashboardScreen = ({ navigation }) => {
               </View>
               <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
             </TouchableOpacity>
+
+            <Divider style={styles.divider} />
+
+            {/* Test Notifications - All Admins */}
+            <TouchableOpacity 
+              style={styles.toolItem}
+              onPress={() => navigation.navigate('NotificationTest')}
+            >
+              <Avatar.Icon size={40} icon="bell-ring" style={[styles.toolIcon, { backgroundColor: '#ff9800' }]} />
+              <View style={styles.toolText}>
+                <Text style={styles.toolTitle}>Test Notifications</Text>
+                <Text style={styles.toolDescription}>
+                  Test push notification system
+                </Text>
+              </View>
+              <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
+            </TouchableOpacity>
+
+            {/* Super Admin Only Tools */}
+            {isSuperAdmin && (
+              <>
+                <Divider style={styles.divider} />
+
+                <TouchableOpacity 
+                  style={styles.toolItem}
+                  onPress={() => navigation.navigate('UserManagement')}
+                >
+                  <Avatar.Icon size={40} icon="account-cog" style={[styles.toolIcon, { backgroundColor: '#f44336' }]} />
+                  <View style={styles.toolText}>
+                    <Text style={styles.toolTitle}>User Management</Text>
+                    <Text style={styles.toolDescription}>
+                      View users, grant admin access, manage accounts
+                    </Text>
+                  </View>
+                  <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
+                </TouchableOpacity>
+
+                <Divider style={styles.divider} />
+
+                <TouchableOpacity 
+                  style={styles.toolItem}
+                  onPress={() => navigation.navigate('SuperAdminAnalytics')}
+                >
+                  <Avatar.Icon size={40} icon="chart-box" style={[styles.toolIcon, { backgroundColor: '#00acc1' }]} />
+                  <View style={styles.toolText}>
+                    <Text style={styles.toolTitle}>Advanced Analytics</Text>
+                    <Text style={styles.toolDescription}>
+                      Visual BI analytics and insights
+                    </Text>
+                  </View>
+                  <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
+                </TouchableOpacity>
+              </>
+            )}
 
             <Divider style={styles.divider} />
 

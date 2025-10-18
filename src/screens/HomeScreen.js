@@ -15,9 +15,14 @@ const HomeScreen = ({ navigation }) => {
     const unsubscribe = subscribeToMatches((matchesData) => {
       const sorted = matchesData.sort((a, b) => {
         const statusOrder = { live: 0, upcoming: 1, finished: 2 };
-        return statusOrder[a.status] - statusOrder[b.status];
+        if (statusOrder[a.status] !== statusOrder[b.status]) {
+          return statusOrder[a.status] - statusOrder[b.status];
+        }
+        // Sort by date within same status
+        return new Date(b.matchDate) - new Date(a.matchDate);
       });
-      setMatches(sorted);
+      // Limit to 20 most recent matches for performance
+      setMatches(sorted.slice(0, 20));
       setLoading(false);
       setRefreshing(false);
     });
@@ -241,6 +246,12 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </View>
         }
+        // Performance optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={10}
+        windowSize={10}
       />
     </View>
   );

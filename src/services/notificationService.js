@@ -6,6 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 class NotificationService {
   constructor() {
     this.initialized = false;
+    this.foregroundUnsubscribe = null;
+    this.notificationOpenedUnsubscribe = null;
   }
 
   // Request notification permissions
@@ -130,7 +132,12 @@ class NotificationService {
 
   // Handle foreground messages
   setupForegroundHandler() {
-    return messaging().onMessage(async remoteMessage => {
+    // Unsubscribe from previous listener if exists
+    if (this.foregroundUnsubscribe) {
+      this.foregroundUnsubscribe();
+    }
+    
+    this.foregroundUnsubscribe = messaging().onMessage(async remoteMessage => {
       console.log('Foreground message received:', remoteMessage);
       
       await this.displayNotification({
@@ -139,12 +146,19 @@ class NotificationService {
         data: remoteMessage.data,
       });
     });
+    
+    return this.foregroundUnsubscribe;
   }
 
   // Handle background messages (removed - must be at top level)
 
   // Handle notification opened (app was closed/background)
   setupNotificationOpenedHandler() {
+    // Unsubscribe from previous listener if exists
+    if (this.notificationOpenedUnsubscribe) {
+      this.notificationOpenedUnsubscribe();
+    }
+    
     // App opened from quit state
     messaging()
       .getInitialNotification()
@@ -156,7 +170,7 @@ class NotificationService {
       });
 
     // App opened from background state
-    messaging().onNotificationOpenedApp(remoteMessage => {
+    this.notificationOpenedUnsubscribe = messaging().onNotificationOpenedApp(remoteMessage => {
       console.log('Notification opened app from background:', remoteMessage);
       // Handle navigation based on remoteMessage.data
     });
@@ -168,6 +182,8 @@ class NotificationService {
         // Handle navigation based on detail.notification.data
       }
     });
+    
+    return this.notificationOpenedUnsubscribe;
   }
 
   // Handle token refresh
