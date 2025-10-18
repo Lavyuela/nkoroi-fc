@@ -124,19 +124,6 @@ exports.onMatchUpdated = functions.firestore
           awayScore: after.awayScore?.toString() || '0',
         });
         
-        // Also create Firestore notification
-        await admin.firestore().collection('notifications').add({
-          title: title,
-          body: body,
-          data: {
-            matchId: matchId,
-            type: 'score_update',
-          },
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          read: false,
-          type: 'match',
-        });
-        
         console.log('✅ Score update notification sent');
       }
       
@@ -420,20 +407,6 @@ exports.onMatchEventAdded = functions.firestore
         type: `match_event_${newEvent.type}`,
         channelId: 'match_updates',
         eventType: newEvent.type,
-      });
-      
-      // Also create Firestore notification
-      await admin.firestore().collection('notifications').add({
-        title: title,
-        body: body,
-        data: {
-          matchId: matchId,
-          type: `match_event_${newEvent.type}`,
-          eventType: newEvent.type,
-        },
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        read: false,
-        type: 'match_event',
       });
       
       console.log(`✅ ${newEvent.type} notification sent`);
