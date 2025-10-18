@@ -257,6 +257,23 @@ const MatchDetailScreen = ({ route, navigation }) => {
       message = `🔴 *LIVE NOW*\n\n${match.homeTeam} ${match.homeScore} - ${match.awayScore} ${match.awayTeam}\n📍 ${match.venue}\n\n_Follow live updates on Nkoroi FC App!_`;
     } else {
       message = `🏆 *Full Time*\n\n${match.homeTeam} ${match.homeScore} - ${match.awayScore} ${match.awayTeam}\n📍 ${match.venue}\n\n_Match report on Nkoroi FC App_`;
+      
+      // Send notification for finished match result
+      if (isAdmin) {
+        const functions = require('@react-native-firebase/functions').default;
+        console.log('🔔 Sending match result notification...');
+        
+        functions().httpsCallable('sendCustomNotification')({
+          title: '🏆 Full Time Result!',
+          body: `${match.homeTeam} ${match.homeScore} - ${match.awayScore} ${match.awayTeam}`,
+          topic: 'team_updates',
+          channelId: 'match_updates',
+        }).then((result) => {
+          console.log('✅ Match result notification sent to all fans:', result);
+        }).catch((notifError) => {
+          console.error('❌ Notification error:', notifError);
+        });
+      }
     }
     
     try {
