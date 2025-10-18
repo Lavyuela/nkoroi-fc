@@ -107,32 +107,34 @@ exports.onMatchUpdated = functions.firestore
       if (before.homeScore !== after.homeScore || before.awayScore !== after.awayScore) {
         console.log('🔥 Match score updated:', matchId);
         
-        // Get the latest goal event to find player name and minute
-        const events = after.events || [];
-        const latestGoal = events.filter(e => e.type === 'goal').pop();
+        // Determine which team scored
+        const homeScored = after.homeScore > before.homeScore;
+        const awayScored = after.awayScore > before.awayScore;
+        const scoringTeam = homeScored ? after.homeTeam : after.awayTeam;
         
-        const minute = latestGoal?.minute || after.currentMinute || 0;
-        let body = 'Score updated!';
-        if (latestGoal && latestGoal.playerName) {
-          body = `${minute}' ⚽ ${latestGoal.playerName} scores!`;
-        } else if (latestGoal && latestGoal.description) {
-          body = `${minute}' ${latestGoal.description}`;
+        // Check if scoring team is Nkoroi FC
+        const isNkoroiFC = scoringTeam.toLowerCase().includes('nkoroi');
+        
+        if (isNkoroiFC) {
+          console.log('⏭️ Nkoroi FC scored - skipping notification, waiting for player selection');
+          // For Nkoroi FC: Wait for onMatchEventAdded (after player selection)
         } else {
-          body = `${minute}' Score updated!`;
+          console.log('⚡ Opponent scored - sending immediate notification');
+          // For opponent: Send notification immediately (no player selection)
+          const minute = after.currentMinute || 0;
+          const title = `🔥 GOAL! ${after.homeTeam} ${after.homeScore} - ${after.awayScore} ${after.awayTeam}`;
+          const body = `${minute}' ⚽ ${scoringTeam} scores!`;
+          
+          await sendTopicNotification('team_updates', title, body, {
+            matchId: matchId,
+            type: 'score_update',
+            channelId: 'score_updates',
+            homeScore: after.homeScore?.toString() || '0',
+            awayScore: after.awayScore?.toString() || '0',
+          });
+          
+          console.log('✅ Opponent goal notification sent immediately');
         }
-        
-        const title = `🔥 GOAL! ${after.homeTeam} ${after.homeScore} - ${after.awayScore} ${after.awayTeam}`;
-        
-        // Send push notification to topic
-        await sendTopicNotification('team_updates', title, body, {
-          matchId: matchId,
-          type: 'score_update',
-          channelId: 'score_updates',
-          homeScore: after.homeScore?.toString() || '0',
-          awayScore: after.awayScore?.toString() || '0',
-        });
-        
-        console.log('✅ Score update notification sent with player:', latestGoal?.playerName || 'unknown');
       }
       
       return null;
@@ -373,11 +375,6 @@ exports.onMatchEventAdded = functions.firestore
       
       console.log('⚽ Match event added:', newEvent.type);
       
-      // Don't send notifications for goals (already handled by onMatchUpdated)
-      if (newEvent.type === 'goal') {
-        return null;
-      }
-      
       const match = after;
       const minute = newEvent.minute || match.currentMinute || 0;
       
@@ -387,6 +384,16 @@ exports.onMatchEventAdded = functions.firestore
       
       // Format notification based on event type
       switch (newEvent.type) {
+        case 'goal':
+          emoji = '⚽';
+          title = `🔥 GOAL! ${match.homeTeam} ${match.homeScore} - ${match.awayScore} ${match.awayTeam}`;
+          // Use player name if available
+          if (newEvent.playerName) {
+            body = `${minute}' ${emoji} ${newEvent.playerName} scores!`;
+          } else {
+            body = newEvent.description || `${minute}' ${emoji} Goal scored!`;
+          }
+          break;
         case 'yellow_card':
           emoji = '🟨';
           title = `${minute}' ${emoji} Yellow Card`;
