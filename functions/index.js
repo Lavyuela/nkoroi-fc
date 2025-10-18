@@ -200,6 +200,46 @@ exports.sendCustomNotification = functions.https.onCall(async (data, context) =>
 
     console.log('📨 Custom notification request from user:', context.auth.uid);
 
+    // Verify user is admin or super_admin
+    try {
+      // Check roles collection first (primary source)
+      const roleDoc = await admin.firestore().collection('roles').doc(context.auth.uid).get();
+      
+      if (roleDoc.exists) {
+        const roleData = roleDoc.data();
+        const userRole = roleData?.role;
+        
+        console.log('✅ User role from roles collection:', userRole);
+        
+        if (userRole !== 'admin' && userRole !== 'super_admin') {
+          throw new functions.https.HttpsError('permission-denied', 'Only admins can send notifications. Your role: ' + userRole);
+        }
+      } else {
+        // Fallback: check users collection
+        const userDoc = await admin.firestore().collection('users').doc(context.auth.uid).get();
+        
+        if (!userDoc.exists) {
+          console.warn('⚠️ No role or user document found, allowing notification (backward compatibility)');
+        } else {
+          const userData = userDoc.data();
+          const isAdmin = userData?.isAdmin === true;
+          const isSuperAdmin = userData?.isSuperAdmin === true;
+          
+          console.log('User admin status from users collection:', { isAdmin, isSuperAdmin });
+          
+          if (!isAdmin && !isSuperAdmin) {
+            throw new functions.https.HttpsError('permission-denied', 'Only admins can send notifications');
+          }
+        }
+      }
+    } catch (error) {
+      if (error.code === 'permission-denied') {
+        throw error;
+      }
+      // If there's any other error checking role, log it but continue
+      console.warn('⚠️ Error checking user role, allowing notification:', error);
+    }
+
     const { title, body, topic = 'team_updates', channelId = 'default' } = data;
 
     if (!title || !body) {
