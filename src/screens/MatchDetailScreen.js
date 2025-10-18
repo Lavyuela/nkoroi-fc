@@ -20,6 +20,7 @@ const MatchDetailScreen = ({ route, navigation }) => {
   const [currentMinute, setCurrentMinute] = useState(0);
   const [showMinuteDialog, setShowMinuteDialog] = useState(false);
   const [tempMinute, setTempMinute] = useState('');
+  const [allPlayers, setAllPlayers] = useState([]);
   const [players, setPlayers] = useState([]);
   const [showPlayerDialog, setShowPlayerDialog] = useState(false);
   const [pendingEvent, setPendingEvent] = useState(null);
@@ -29,7 +30,7 @@ const MatchDetailScreen = ({ route, navigation }) => {
     loadMatch();
     loadUserPreferences();
     
-    // Load players with real-time listener
+    // Load all players with real-time listener
     const unsubscribe = firestore()
       .collection('players')
       .orderBy('name', 'asc')
@@ -44,11 +45,24 @@ const MatchDetailScreen = ({ route, navigation }) => {
             });
           }
         });
-        setPlayers(playersList);
+        setAllPlayers(playersList);
       });
     
     return () => unsubscribe();
   }, [matchId]);
+
+  // Filter players based on match lineup
+  useEffect(() => {
+    if (match && match.lineup && match.lineup.length > 0) {
+      // If lineup exists, show only lineup players
+      const lineupPlayerIds = match.lineup.map(p => p.id);
+      const filteredPlayers = allPlayers.filter(p => lineupPlayerIds.includes(p.id));
+      setPlayers(filteredPlayers);
+    } else {
+      // If no lineup, show all players
+      setPlayers(allPlayers);
+    }
+  }, [match, allPlayers]);
 
   useEffect(() => {
     if (match && match.currentMinute !== undefined) {
@@ -939,24 +953,40 @@ const MatchDetailScreen = ({ route, navigation }) => {
         }}>
           <Dialog.Title>Select Player</Dialog.Title>
           <Dialog.Content>
+            {match && match.lineup && match.lineup.length > 0 && (
+              <Card style={{ marginBottom: 10, backgroundColor: '#e3f2fd' }}>
+                <Card.Content>
+                  <Text style={{ fontSize: 12, color: '#1976d2' }}>
+                    Showing lineup players only ({players.length} players)
+                  </Text>
+                </Card.Content>
+              </Card>
+            )}
             <ScrollView style={{ maxHeight: 400 }}>
-              {players.map((player) => (
-                <TouchableOpacity
-                  key={player.id}
-                  style={styles.playerItem}
-                  onPress={() => handlePlayerSelected(player)}
-                >
-                  <View style={styles.playerJersey}>
-                    <Text style={styles.playerJerseyNumber}>
-                      {player.jerseyNumber || '?'}
-                    </Text>
-                  </View>
-                  <View style={styles.playerInfo}>
-                    <Text style={styles.playerItemName}>{player.name}</Text>
-                    <Text style={styles.playerItemPosition}>{player.position}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+              {players.length === 0 ? (
+                <Text style={{ textAlign: 'center', padding: 20, color: '#666' }}>
+                  No lineup saved for this match.{'\n'}
+                  Create a lineup from Admin Dashboard → Create Lineup.
+                </Text>
+              ) : (
+                players.map((player) => (
+                  <TouchableOpacity
+                    key={player.id}
+                    style={styles.playerItem}
+                    onPress={() => handlePlayerSelected(player)}
+                  >
+                    <View style={styles.playerJersey}>
+                      <Text style={styles.playerJerseyNumber}>
+                        {player.jerseyNumber || '?'}
+                      </Text>
+                    </View>
+                    <View style={styles.playerInfo}>
+                      <Text style={styles.playerItemName}>{player.name}</Text>
+                      <Text style={styles.playerItemPosition}>{player.position}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
             </ScrollView>
           </Dialog.Content>
           <Dialog.Actions>

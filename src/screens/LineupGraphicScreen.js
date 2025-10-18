@@ -188,9 +188,28 @@ const LineupGraphicScreen = ({ route, navigation }) => {
       
       await RNFS.copyFile(uri, destPath);
       
+      // Save lineup to match document for filtering in match events
+      if (matchId) {
+        const lineupPlayers = [
+          lineup.goalkeeper,
+          ...lineup.defenders,
+          ...lineup.midfielders,
+          ...lineup.forwards,
+        ].filter(p => p !== null);
+        
+        await firestore()
+          .collection('matches')
+          .doc(matchId)
+          .update({
+            lineup: lineupPlayers,
+            formation: formation,
+            lineupSavedAt: firestore.FieldValue.serverTimestamp(),
+          });
+      }
+      
       Alert.alert(
         'Success', 
-        'Lineup saved!\n\nYou can view your saved graphics from the Admin Dashboard under "Saved Graphics".',
+        'Lineup saved!\n\nYou can view your saved graphics from the Admin Dashboard under "Saved Graphics".\n\nPlayers in this lineup will now appear in match events.',
         [{ text: 'OK' }]
       );
     } catch (error) {
