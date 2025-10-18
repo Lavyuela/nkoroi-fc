@@ -294,6 +294,55 @@ const MatchDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const undoLastGoal = async () => {
+    Alert.alert(
+      'Undo Last Goal',
+      'Remove the last goal scored? This will reduce the score by 1.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Undo Goal',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Find the last goal event
+              const events = Array.isArray(match.events) ? [...match.events] : Object.values(match.events);
+              const lastGoalIndex = events.map((e, i) => e?.type === 'goal' ? i : -1).filter(i => i !== -1).pop();
+              
+              if (lastGoalIndex === undefined || lastGoalIndex === -1) {
+                Alert.alert('No Goals', 'No goals to undo');
+                return;
+              }
+              
+              const lastGoal = events[lastGoalIndex];
+              const teamName = lastGoal.team;
+              const isHome = teamName === match.homeTeam;
+              
+              // Reduce score
+              const newHomeScore = isHome ? Math.max(0, match.homeScore - 1) : match.homeScore;
+              const newAwayScore = !isHome ? Math.max(0, match.awayScore - 1) : match.awayScore;
+              
+              // Remove the goal event
+              events.splice(lastGoalIndex, 1);
+              
+              // Update match
+              await updateMatch(matchId, {
+                homeScore: newHomeScore,
+                awayScore: newAwayScore,
+                events: events,
+              });
+              
+              Alert.alert('Success', 'Last goal removed');
+            } catch (error) {
+              console.error('Error undoing goal:', error);
+              Alert.alert('Error', 'Failed to undo goal');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleGoal = async (team, player = null) => {
     const newHomeScore = team === 'home' ? match.homeScore + 1 : match.homeScore;
     const newAwayScore = team === 'away' ? match.awayScore + 1 : match.awayScore;
@@ -901,6 +950,15 @@ const MatchDetailScreen = ({ route, navigation }) => {
                   </View>
 
                   <Button
+                    mode="outlined"
+                    onPress={undoLastGoal}
+                    style={[styles.controlButton, styles.undoButton]}
+                    icon="undo"
+                  >
+                    ↩️ Undo Last Goal
+                  </Button>
+
+                  <Button
                     mode="contained"
                     onPress={handleHalftime}
                     style={[styles.controlButton, styles.halftimeButton]}
@@ -1227,6 +1285,10 @@ const styles = StyleSheet.create({
   },
   halftimeButton: {
     backgroundColor: '#ff9800',
+  },
+  undoButton: {
+    borderColor: '#f44336',
+    borderWidth: 2,
   },
   buttonRow: {
     flexDirection: 'row',
