@@ -262,27 +262,21 @@ const MatchDetailScreen = ({ route, navigation }) => {
   };
 
   const handleGoal = async (team, player = null) => {
-    let newHomeScore = homeScore;
-    let newAwayScore = awayScore;
-
-    if (team === 'home') {
-      newHomeScore = homeScore + 1;
-      setHomeScore(newHomeScore);
-    } else {
-      newAwayScore = awayScore + 1;
-      setAwayScore(newAwayScore);
-    }
-
-    const scoringTeam = team === 'home' ? match.homeTeam : match.awayTeam;
+    const newHomeScore = team === 'home' ? match.homeScore + 1 : match.homeScore;
+    const newAwayScore = team === 'away' ? match.awayScore + 1 : match.awayScore;
     const score = `${newHomeScore}-${newAwayScore}`;
+    const scoringTeam = team === 'home' ? match.homeTeam : match.awayTeam;
     
-    await updateMatchData({ 
-      homeScore: newHomeScore, 
+    await updateMatch(matchId, {
+      homeScore: newHomeScore,
       awayScore: newAwayScore,
     });
     
-    // Only show player selection for home team (Nkoroi FC)
-    if (team === 'home' && players.length > 0 && !player) {
+    // Check if scoring team is Nkoroi FC (whether home or away)
+    const isNkoroiFC = scoringTeam.toLowerCase().includes('nkoroi');
+    
+    // Only show player selection for Nkoroi FC
+    if (isNkoroiFC && players.length > 0 && !player) {
       // Show player selection for goal
       setPendingEvent({ 
         eventType: 'goal', 
@@ -293,7 +287,7 @@ const MatchDetailScreen = ({ route, navigation }) => {
       });
       setShowPlayerDialog(true);
     } else {
-      // For away team or when no players, just add the event directly
+      // For opponent or when no players, just add the event directly
       await addEvent('goal', scoringTeam, `GOAL! ${scoringTeam} scores! ${score}`, null, player);
     }
   };
@@ -322,8 +316,11 @@ const MatchDetailScreen = ({ route, navigation }) => {
 
   const handleYellowCard = async (team) => {
     const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
-    // Only show player selection for home team (Nkoroi FC)
-    if (team === 'home' && players.length > 0) {
+    // Check if team is Nkoroi FC (whether home or away)
+    const isNkoroiFC = teamName.toLowerCase().includes('nkoroi');
+    
+    // Only show player selection for Nkoroi FC
+    if (isNkoroiFC && players.length > 0) {
       showPlayerSelection('yellow_card', team, 'Yellow card');
     } else {
       await addEvent('yellow_card', teamName, `Yellow card for ${teamName}`);
@@ -332,8 +329,11 @@ const MatchDetailScreen = ({ route, navigation }) => {
 
   const handleRedCard = async (team) => {
     const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
-    // Only show player selection for home team (Nkoroi FC)
-    if (team === 'home' && players.length > 0) {
+    // Check if team is Nkoroi FC (whether home or away)
+    const isNkoroiFC = teamName.toLowerCase().includes('nkoroi');
+    
+    // Only show player selection for Nkoroi FC
+    if (isNkoroiFC && players.length > 0) {
       showPlayerSelection('red_card', team, 'Red card');
     } else {
       await addEvent('red_card', teamName, `Red card! ${teamName} player sent off`);
@@ -342,8 +342,11 @@ const MatchDetailScreen = ({ route, navigation }) => {
 
   const handleSubstitution = async (team) => {
     const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
-    // Only show player selection for home team (Nkoroi FC)
-    if (team === 'home' && players.length > 0) {
+    // Check if team is Nkoroi FC (whether home or away)
+    const isNkoroiFC = teamName.toLowerCase().includes('nkoroi');
+    
+    // Only show player selection for Nkoroi FC
+    if (isNkoroiFC && players.length > 0) {
       showPlayerSelection('substitution', team, 'Substitution');
     } else {
       await addEvent('substitution', teamName, `Substitution for ${teamName}`);

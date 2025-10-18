@@ -91,9 +91,11 @@ const PreMatchAnnouncementScreen = ({ route, navigation }) => {
       
       await RNFS.copyFile(uri, destPath);
       
-      Alert.alert('Success', 'Announcement saved in app!', [
-        { text: 'OK' }
-      ]);
+      Alert.alert(
+        'Success', 
+        'Announcement saved!\n\nYou can view your saved graphics from the Admin Dashboard under "Saved Graphics".',
+        [{ text: 'OK' }]
+      );
     } catch (error) {
       console.error('Save error:', error);
       Alert.alert('Error', 'Failed to save announcement: ' + error.message);

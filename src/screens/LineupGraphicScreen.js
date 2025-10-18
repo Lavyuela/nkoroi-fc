@@ -45,6 +45,8 @@ const LineupGraphicScreen = ({ route, navigation }) => {
     }
     loadMatch();
     loadPlayers();
+    // Initialize lineup with default formation
+    initializeFormation('4-4-2');
   }, []);
 
   const loadMatch = async () => {
@@ -186,9 +188,11 @@ const LineupGraphicScreen = ({ route, navigation }) => {
       
       await RNFS.copyFile(uri, destPath);
       
-      Alert.alert('Success', 'Lineup saved in app!', [
-        { text: 'OK' }
-      ]);
+      Alert.alert(
+        'Success', 
+        'Lineup saved!\n\nYou can view your saved graphics from the Admin Dashboard under "Saved Graphics".',
+        [{ text: 'OK' }]
+      );
     } catch (error) {
       console.error('Save error:', error);
       Alert.alert('Error', 'Failed to save lineup: ' + error.message);
