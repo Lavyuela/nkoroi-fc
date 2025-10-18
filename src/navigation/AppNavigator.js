@@ -18,6 +18,7 @@ import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 // import AdminNotificationScreen from '../screens/AdminNotificationScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
 import AnalyticsScreen from '../screens/AnalyticsScreen';
+import SavedGraphicsScreen from '../screens/SavedGraphicsScreen';
 import TestNotificationScreen from '../screens/TestNotificationScreen';
 import PlayerManagementScreen from '../screens/PlayerManagementScreen';
 import LineupGraphicScreen from '../screens/LineupGraphicScreen';
@@ -65,6 +66,7 @@ const AppNavigator = () => {
           <Stack.Screen name="UserManagement" component={UserManagementScreen} />
           <Stack.Screen name="PlayerManagement" component={PlayerManagementScreen} />
           <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+          <Stack.Screen name="SavedGraphics" component={SavedGraphicsScreen} />
           <Stack.Screen name="TestNotification" component={TestNotificationScreen} />
           <Stack.Screen name="NotificationTest" component={NotificationTestScreen} />
           <Stack.Screen name="LineupGraphic" component={LineupGraphicScreen} />

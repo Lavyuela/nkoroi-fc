@@ -112,8 +112,18 @@ exports.onMatchUpdated = functions.firestore
       if (before.homeScore !== after.homeScore || before.awayScore !== after.awayScore) {
         console.log('🔥 Match score updated:', matchId);
         
+        // Get the latest goal event to find player name
+        const events = after.events || [];
+        const latestGoal = events.filter(e => e.type === 'goal').pop();
+        
+        let body = 'Score updated!';
+        if (latestGoal && latestGoal.playerName) {
+          body = `⚽ ${latestGoal.playerName} scores!`;
+        } else if (latestGoal && latestGoal.description) {
+          body = latestGoal.description;
+        }
+        
         const title = `🔥 GOAL! ${after.homeTeam} ${after.homeScore} - ${after.awayScore} ${after.awayTeam}`;
-        const body = `Score updated!`;
         
         // Send push notification to topic
         await sendTopicNotification('team_updates', title, body, {
@@ -124,7 +134,7 @@ exports.onMatchUpdated = functions.firestore
           awayScore: after.awayScore?.toString() || '0',
         });
         
-        console.log('✅ Score update notification sent');
+        console.log('✅ Score update notification sent with player:', latestGoal?.playerName || 'unknown');
       }
       
       return null;

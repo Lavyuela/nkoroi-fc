@@ -234,6 +234,18 @@ const LineupGraphicScreen = ({ route, navigation }) => {
       
       const uri = await viewShotRef.current.capture();
       
+      // Send notification to fans
+      try {
+        const functions = require('@react-native-firebase/functions').default;
+        await functions().httpsCallable('sendCustomNotification')({
+          title: '⚽ Starting Lineup Announced!',
+          body: `Check out the lineup for ${match?.homeTeam} vs ${match?.awayTeam}`,
+          topic: 'team_updates',
+        });
+      } catch (notifError) {
+        console.log('Notification error:', notifError);
+      }
+      
       await Share.open({
         title: 'Nkoroi FC Lineup',
         message: `Nkoroi FC Lineup - ${match?.homeTeam} vs ${match?.awayTeam}`,

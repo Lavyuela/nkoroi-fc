@@ -225,6 +225,22 @@ const AdminDashboardScreen = ({ navigation }) => {
 
             <Divider style={styles.divider} />
 
+            <TouchableOpacity 
+              style={styles.toolItem}
+              onPress={() => navigation.navigate('SavedGraphics')}
+            >
+              <Avatar.Icon size={40} icon="image-multiple" style={[styles.toolIcon, { backgroundColor: '#9c27b0' }]} />
+              <View style={styles.toolText}>
+                <Text style={styles.toolTitle}>Saved Graphics</Text>
+                <Text style={styles.toolDescription}>
+                  View and share saved match graphics
+                </Text>
+              </View>
+              <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
+            </TouchableOpacity>
+
+            <Divider style={styles.divider} />
+
             {/* Temporarily disabled - will add back with proper implementation */}
             {/* <TouchableOpacity 
               style={styles.toolItem}

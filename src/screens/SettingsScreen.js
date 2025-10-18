@@ -241,7 +241,7 @@ const SettingsScreen = ({ navigation }) => {
         </Card>
 
         <Text style={styles.footer}>
-          Settings are saved automatically
+          🌍 Nkoroi to the World 🌍
         </Text>
       </ScrollView>
     </View>

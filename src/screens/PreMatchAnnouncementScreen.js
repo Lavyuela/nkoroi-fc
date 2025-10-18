@@ -114,6 +114,18 @@ const PreMatchAnnouncementScreen = ({ route, navigation }) => {
       
       const uri = await viewShotRef.current.capture();
       
+      // Send notification to fans
+      try {
+        const functions = require('@react-native-firebase/functions').default;
+        await functions().httpsCallable('sendCustomNotification')({
+          title: '📢 Match Announcement!',
+          body: `${match.homeTeam} vs ${match.awayTeam} - ${formatDate(match.matchDate)} at ${formatTime(match.matchDate)}`,
+          topic: 'team_updates',
+        });
+      } catch (notifError) {
+        console.log('Notification error:', notifError);
+      }
+      
       await Share.open({
         title: 'Match Announcement',
         message: `⚽ ${match.homeTeam} vs ${match.awayTeam}\n📅 ${formatDate(match.matchDate)}\n⏰ ${formatTime(match.matchDate)}\n📍 ${match.venue || 'TBA'}`,

@@ -22,7 +22,7 @@ const GraphicTemplate = ({ children, title, subtitle }) => {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Nkoroi FC • Official</Text>
+        <Text style={styles.footerText}>🌍 Nkoroi to the World 🌍</Text>
       </View>
     </View>
   );
