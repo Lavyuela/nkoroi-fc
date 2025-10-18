@@ -213,11 +213,25 @@ class NotificationService {
   async initialize(userId = null) {
     if (this.initialized) {
       console.log('Notification service already initialized');
+      // Re-subscribe to topic if userId is provided
+      if (userId) {
+        console.log('Re-subscribing to topic for user:', userId);
+        try {
+          await messaging().subscribeToTopic('team_updates');
+          await firestore().collection('users').doc(userId).update({
+            subscribedToTopics: firestore.FieldValue.arrayUnion('team_updates'),
+            lastTopicSubscription: firestore.FieldValue.serverTimestamp(),
+          });
+          console.log('✅ Re-subscribed to topic successfully');
+        } catch (err) {
+          console.error('❌ Re-subscription failed:', err);
+        }
+      }
       return true;
     }
 
     try {
-      console.log('Starting notification service initialization...');
+      console.log('Starting notification service initialization for user:', userId || 'anonymous');
       
       // Request permissions
       console.log('Requesting permissions...');
@@ -280,6 +294,28 @@ class NotificationService {
     } catch (error) {
       console.error('❌ Notification service initialization error:', error);
       throw error;
+    }
+  }
+
+  // Manually subscribe to topic (for all users)
+  async subscribeToTeamUpdates(userId = null) {
+    try {
+      console.log('📢 Subscribing to team_updates topic...');
+      await messaging().subscribeToTopic('team_updates');
+      console.log('✅ Subscribed to team_updates topic');
+      
+      if (userId) {
+        await firestore().collection('users').doc(userId).set({
+          subscribedToTopics: firestore.FieldValue.arrayUnion('team_updates'),
+          lastTopicSubscription: firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        console.log('✅ Subscription saved to Firestore');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Topic subscription error:', error);
+      return false;
     }
   }
 
