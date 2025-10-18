@@ -234,24 +234,22 @@ const LineupGraphicScreen = ({ route, navigation }) => {
       
       const uri = await viewShotRef.current.capture();
       
-      // Send notification to fans
+      // Send notification to fans (silently)
       const functions = require('@react-native-firebase/functions').default;
       console.log('🔔 Sending lineup announcement notification...');
       
-      // Send notification and show popup
+      // Send notification in background
       functions().httpsCallable('sendCustomNotification')({
         title: '⚽ Starting Lineup Announced!',
         body: `Check out the lineup for ${match?.homeTeam} vs ${match?.awayTeam}`,
         topic: 'team_updates',
         channelId: 'match_updates',
       }).then((result) => {
-        console.log('✅ Notification sent successfully:', result);
-        Alert.alert('✅ Success!', 'Notification sent to all fans!', [{ text: 'OK' }]);
+        console.log('✅ Notification sent successfully to all fans:', result);
       }).catch((notifError) => {
         console.error('❌ Notification error:', notifError);
         console.error('Error code:', notifError.code);
         console.error('Error details:', notifError.details);
-        Alert.alert('❌ Error', `Failed to send notification: ${notifError.message}`, [{ text: 'OK' }]);
       });
       
       // Then share
