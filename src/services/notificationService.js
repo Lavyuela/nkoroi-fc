@@ -1,4 +1,5 @@
 import messaging from '@react-native-firebase/messaging';
+import firestore from '@react-native-firebase/firestore';
 import notifee, { AndroidImportance, AndroidStyle } from '@notifee/react-native';
 import { Platform, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -242,10 +243,29 @@ class NotificationService {
 
       // Subscribe to team updates topic for broadcast notifications
       console.log('Subscribing to team_updates topic...');
-      await messaging()
-        .subscribeToTopic('team_updates')
-        .then(() => console.log('✅ Subscribed to topic: team_updates'))
-        .catch(err => console.error('❌ Topic subscription failed:', err));
+      try {
+        await messaging().subscribeToTopic('team_updates');
+        console.log('✅ Subscribed to topic: team_updates');
+        
+        // Verify subscription by saving to Firestore
+        if (userId) {
+          await firestore().collection('users').doc(userId).update({
+            subscribedToTopics: firestore.FieldValue.arrayUnion('team_updates'),
+            lastTopicSubscription: firestore.FieldValue.serverTimestamp(),
+          });
+          console.log('✅ Topic subscription verified in Firestore');
+        }
+      } catch (err) {
+        console.error('❌ Topic subscription failed:', err);
+        // Retry once
+        try {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          await messaging().subscribeToTopic('team_updates');
+          console.log('✅ Subscribed to topic on retry');
+        } catch (retryErr) {
+          console.error('❌ Topic subscription retry failed:', retryErr);
+        }
+      }
 
       // Setup handlers
       console.log('Setting up handlers...');

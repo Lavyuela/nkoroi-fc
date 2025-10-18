@@ -74,20 +74,7 @@ exports.onMatchCreated = functions.firestore
         channelId: 'match_updates',
       });
       
-      // Also create Firestore notification for in-app display
-      await admin.firestore().collection('notifications').add({
-        title: title,
-        body: body,
-        data: {
-          matchId: matchId,
-          type: 'new_match',
-        },
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        read: false,
-        type: 'match',
-      });
-      
-      console.log('✅ Match notification sent to topic and saved to Firestore');
+      console.log('✅ New match notification sent');
       
       return null;
     } catch (error) {
@@ -225,7 +212,8 @@ exports.sendCustomNotification = functions.https.onCall(async (data, context) =>
       channelId: channelId,
     });
 
-    console.log('✅ Custom notification sent successfully');
+    console.log('✅ Custom notification sent successfully to topic');
+    console.log('📤 Response:', response);
 
     return {
       success: true,
