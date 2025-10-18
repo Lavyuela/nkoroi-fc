@@ -373,23 +373,27 @@ const styles = StyleSheet.create({
   playerInfo: {
     flex: 1,
     marginLeft: 16,
+    marginRight: 8,
   },
   playerName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#333',
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   playerMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   positionChip: {
     marginRight: 8,
-    height: 24,
+    height: 26,
+    marginBottom: 4,
   },
   chipText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#fff',
   },

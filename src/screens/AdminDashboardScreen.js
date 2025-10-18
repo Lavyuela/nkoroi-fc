@@ -268,54 +268,6 @@ const AdminDashboardScreen = ({ navigation }) => {
               </>
             )}
 
-            <Divider style={styles.divider} />
-
-            {/* Temporarily disabled - will add back with proper implementation */}
-            {/* <TouchableOpacity 
-              style={styles.toolItem}
-              onPress={() => navigation.navigate('AdminNotification')}
-            >
-              <Avatar.Icon size={40} icon="send" style={[styles.toolIcon, { backgroundColor: '#ff6f00' }]} />
-              <View style={styles.toolText}>
-                <Text style={styles.toolTitle}>Send Notifications</Text>
-                <Text style={styles.toolDescription}>
-                  Send push notifications to all users
-                </Text>
-              </View>
-              <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
-            </TouchableOpacity> */}
-
-            <Divider style={styles.divider} />
-
-            <TouchableOpacity 
-              style={styles.toolItem}
-              onPress={() => navigation.navigate('PlayerManagement')}
-            >
-              <Avatar.Icon size={40} icon="account-group" style={[styles.toolIcon, { backgroundColor: '#2196F3' }]} />
-              <View style={styles.toolText}>
-                <Text style={styles.toolTitle}>Player Management</Text>
-                <Text style={styles.toolDescription}>
-                  Add, edit, and manage team players
-                </Text>
-              </View>
-              <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
-            </TouchableOpacity>
-
-            <Divider style={styles.divider} />
-
-            <TouchableOpacity 
-              style={styles.toolItem}
-              onPress={() => navigation.navigate('NotificationTest')}
-            >
-              <Avatar.Icon size={40} icon="bell-ring" style={styles.toolIcon} />
-              <View style={styles.toolText}>
-                <Text style={styles.toolTitle}>Test Notifications</Text>
-                <Text style={styles.toolDescription}>
-                  Test FCM & local notifications
-                </Text>
-              </View>
-              <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
-            </TouchableOpacity>
           </Card.Content>
         </Card>
 

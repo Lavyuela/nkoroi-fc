@@ -225,18 +225,6 @@ exports.sendCustomNotification = functions.https.onCall(async (data, context) =>
       channelId: channelId,
     });
 
-    // Also create Firestore notification
-    await admin.firestore().collection('notifications').add({
-      title: title,
-      body: body,
-      data: {
-        type: 'custom',
-      },
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      read: false,
-      type: 'custom',
-    });
-
     console.log('✅ Custom notification sent successfully');
 
     return {

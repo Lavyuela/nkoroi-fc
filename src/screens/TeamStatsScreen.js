@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, RefreshControl } from 'react-native';
 import { Text, Card, Appbar, Avatar, ProgressBar } from 'react-native-paper';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import firestore from '@react-native-firebase/firestore';
 
 const TeamStatsScreen = ({ navigation }) => {
   const [stats, setStats] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -12,16 +13,15 @@ const TeamStatsScreen = ({ navigation }) => {
 
   const loadStats = async () => {
     try {
-      const savedMatches = await AsyncStorage.getItem('demoMatches');
-      if (savedMatches) {
-        const matches = JSON.parse(savedMatches);
-        calculateStats(matches);
-      } else {
-        setStats(getDefaultStats());
-      }
+      setRefreshing(true);
+      const matchesSnapshot = await firestore().collection('matches').get();
+      const matches = matchesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      calculateStats(matches);
+      setRefreshing(false);
     } catch (error) {
       console.log('Error loading stats:', error);
       setStats(getDefaultStats());
+      setRefreshing(false);
     }
   };
 
@@ -74,7 +74,12 @@ const TeamStatsScreen = ({ navigation }) => {
         <Appbar.Content title="Team Statistics" titleStyle={styles.headerTitle} />
       </Appbar.Header>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView 
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={loadStats} />
+        }
+      >
         <Card style={styles.card}>
           <Card.Content>
             <View style={styles.logoContainer}>

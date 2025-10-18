@@ -329,8 +329,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   content: {
-    flex: 1,
     padding: 15,
+    paddingBottom: 30,
   },
   headerCard: {
     marginBottom: 20,
