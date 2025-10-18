@@ -415,6 +415,7 @@ const LineupGraphicScreen = ({ route, navigation }) => {
                   onPress={() => {
                     setFormation(key);
                     initializeFormation(key);
+                    setShowPreview(false); // Reset preview when changing formation
                     setShowFormationMenu(false);
                   }}
                   title={key}
