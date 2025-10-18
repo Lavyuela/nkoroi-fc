@@ -477,17 +477,20 @@ const styles = StyleSheet.create({
   userInfo: {
     flex: 1,
     marginLeft: 16,
+    marginRight: 8,
   },
   userHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    flexWrap: 'wrap',
   },
   userEmail: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#333',
     marginRight: 8,
+    flexShrink: 1,
   },
   youChip: {
     backgroundColor: '#1a472a',
@@ -496,6 +499,7 @@ const styles = StyleSheet.create({
   userMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   superAdminChip: {
     backgroundColor: '#f44336',
