@@ -373,13 +373,7 @@ exports.onMatchEventAdded = functions.firestore
       // Get the newly added event (last one in array)
       const newEvent = afterEvents[afterEvents.length - 1];
       
-      // Check if this event was already notified (prevent duplicates)
-      if (newEvent.notified === true) {
-        console.log('⏭️ Event already notified, skipping:', newEvent.type);
-        return null;
-      }
-      
-      console.log('⚽ Match event added:', newEvent.type);
+      console.log('⚽ New match event detected:', newEvent.type, 'at', newEvent.minute || 0, 'minute');
       
       const match = after;
       const minute = newEvent.minute || match.currentMinute || 0;
@@ -461,14 +455,8 @@ exports.onMatchEventAdded = functions.firestore
       
       console.log(`✅ ${newEvent.type} notification sent`);
       
-      // Mark event as notified to prevent duplicate notifications
-      const eventIndex = afterEvents.length - 1;
-      afterEvents[eventIndex].notified = true;
-      await change.after.ref.update({
-        events: afterEvents
-      });
-      
-      console.log('✅ Event marked as notified');
+      // NOTE: We don't update the document here to avoid triggering this function again
+      // The check at the beginning (afterEvents.length <= beforeEvents.length) prevents duplicates
       
       return null;
     } catch (error) {

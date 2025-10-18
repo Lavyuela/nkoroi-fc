@@ -53,18 +53,25 @@ const MatchDetailScreen = ({ route, navigation }) => {
     return () => unsubscribe();
   }, [matchId]);
 
-  // Filter players based on match lineup
+  // Filter players based on match lineup and substitution step
   useEffect(() => {
     if (match && match.lineup && match.lineup.length > 0) {
-      // If lineup exists, show only lineup players
       const lineupPlayerIds = match.lineup.map(p => p.id);
-      const filteredPlayers = allPlayers.filter(p => lineupPlayerIds.includes(p.id));
-      setPlayers(filteredPlayers);
+      
+      // For substitution IN, show bench players (NOT in lineup)
+      if (substitutionStep === 'in') {
+        const benchPlayers = allPlayers.filter(p => !lineupPlayerIds.includes(p.id));
+        setPlayers(benchPlayers);
+      } else {
+        // For substitution OUT or other events, show lineup players
+        const filteredPlayers = allPlayers.filter(p => lineupPlayerIds.includes(p.id));
+        setPlayers(filteredPlayers);
+      }
     } else {
       // If no lineup, show all players
       setPlayers(allPlayers);
     }
-  }, [match, allPlayers]);
+  }, [match, allPlayers, substitutionStep]);
 
   useEffect(() => {
     if (match && match.currentMinute !== undefined) {
@@ -1088,10 +1095,13 @@ const MatchDetailScreen = ({ route, navigation }) => {
           </Dialog.Title>
           <Dialog.Content>
             {match && match.lineup && match.lineup.length > 0 && (
-              <Card style={{ marginBottom: 10, backgroundColor: '#e3f2fd' }}>
+              <Card style={{ marginBottom: 10, backgroundColor: substitutionStep === 'in' ? '#fff3e0' : '#e3f2fd' }}>
                 <Card.Content>
-                  <Text style={{ fontSize: 12, color: '#1976d2' }}>
-                    ✓ Showing lineup players only ({players.length} players)
+                  <Text style={{ fontSize: 12, color: substitutionStep === 'in' ? '#f57c00' : '#1976d2' }}>
+                    {substitutionStep === 'in' 
+                      ? `🔄 Showing bench players (${players.length} available)`
+                      : `✓ Showing lineup players (${players.length} players)`
+                    }
                   </Text>
                 </Card.Content>
               </Card>
