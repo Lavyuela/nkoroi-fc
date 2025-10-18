@@ -112,15 +112,18 @@ exports.onMatchUpdated = functions.firestore
       if (before.homeScore !== after.homeScore || before.awayScore !== after.awayScore) {
         console.log('🔥 Match score updated:', matchId);
         
-        // Get the latest goal event to find player name
+        // Get the latest goal event to find player name and minute
         const events = after.events || [];
         const latestGoal = events.filter(e => e.type === 'goal').pop();
         
+        const minute = latestGoal?.minute || after.currentMinute || 0;
         let body = 'Score updated!';
         if (latestGoal && latestGoal.playerName) {
-          body = `⚽ ${latestGoal.playerName} scores!`;
+          body = `${minute}' ⚽ ${latestGoal.playerName} scores!`;
         } else if (latestGoal && latestGoal.description) {
-          body = latestGoal.description;
+          body = `${minute}' ${latestGoal.description}`;
+        } else {
+          body = `${minute}' Score updated!`;
         }
         
         const title = `🔥 GOAL! ${after.homeTeam} ${after.homeScore} - ${after.awayScore} ${after.awayTeam}`;
@@ -358,6 +361,7 @@ exports.onMatchEventAdded = functions.firestore
       }
       
       const match = after;
+      const minute = newEvent.minute || match.currentMinute || 0;
       
       let title = '';
       let body = '';
@@ -367,47 +371,52 @@ exports.onMatchEventAdded = functions.firestore
       switch (newEvent.type) {
         case 'yellow_card':
           emoji = '🟨';
-          title = `${emoji} Yellow Card`;
+          title = `${minute}' ${emoji} Yellow Card`;
           body = newEvent.description || `Yellow card in ${match.homeTeam} vs ${match.awayTeam}`;
           break;
         case 'red_card':
           emoji = '🟥';
-          title = `${emoji} Red Card!`;
+          title = `${minute}' ${emoji} Red Card!`;
           body = newEvent.description || `Red card! Player sent off in ${match.homeTeam} vs ${match.awayTeam}`;
           break;
         case 'substitution':
           emoji = '🔄';
-          title = `${emoji} Substitution`;
+          title = `${minute}' ${emoji} Substitution`;
           body = newEvent.description || `Substitution in ${match.homeTeam} vs ${match.awayTeam}`;
           break;
         case 'corner':
           emoji = '🚩';
-          title = `${emoji} Corner Kick`;
+          title = `${minute}' ${emoji} Corner Kick`;
           body = newEvent.description || `Corner kick for ${newEvent.team}`;
           break;
         case 'free_kick':
           emoji = '⚽';
-          title = `${emoji} Free Kick`;
+          title = `${minute}' ${emoji} Free Kick`;
           body = newEvent.description || `Free kick for ${newEvent.team}`;
           break;
         case 'penalty':
           emoji = '🎯';
-          title = `${emoji} Penalty!`;
+          title = `${minute}' ${emoji} Penalty!`;
           body = newEvent.description || `Penalty awarded to ${newEvent.team}`;
           break;
         case 'offside':
           emoji = '🚫';
-          title = `${emoji} Offside`;
+          title = `${minute}' ${emoji} Offside`;
           body = newEvent.description || `Offside called`;
           break;
         case 'injury':
           emoji = '🏥';
-          title = `${emoji} Injury`;
+          title = `${minute}' ${emoji} Injury`;
           body = newEvent.description || `Player injury in ${match.homeTeam} vs ${match.awayTeam}`;
+          break;
+        case 'halftime':
+          emoji = '⏸️';
+          title = `${emoji} Half Time`;
+          body = newEvent.description || `Half time: ${match.homeTeam} ${match.homeScore} - ${match.awayScore} ${match.awayTeam}`;
           break;
         default:
           // For any other event types
-          title = `⚽ Match Event`;
+          title = `${minute}' ⚽ Match Event`;
           body = newEvent.description || `Event in ${match.homeTeam} vs ${match.awayTeam}`;
       }
       

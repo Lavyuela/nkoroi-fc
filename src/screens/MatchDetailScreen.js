@@ -398,17 +398,41 @@ const MatchDetailScreen = ({ route, navigation }) => {
 
   const handleInjury = async (team) => {
     const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
-    await addEvent('injury', teamName, `Injury stoppage - ${teamName} player down`);
+    // Check if team is Nkoroi FC (whether home or away)
+    const isNkoroiFC = teamName.toLowerCase().includes('nkoroi');
+    
+    // Only show player selection for Nkoroi FC
+    if (isNkoroiFC && players.length > 0) {
+      showPlayerSelection('injury', team, 'Injury stoppage');
+    } else {
+      await addEvent('injury', teamName, `Injury stoppage - ${teamName} player down`);
+    }
   };
 
   const handlePenalty = async (team) => {
     const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
-    await addEvent('penalty', teamName, `Penalty awarded to ${teamName}!`);
+    // Check if team is Nkoroi FC (whether home or away)
+    const isNkoroiFC = teamName.toLowerCase().includes('nkoroi');
+    
+    // Only show player selection for Nkoroi FC
+    if (isNkoroiFC && players.length > 0) {
+      showPlayerSelection('penalty', team, 'Penalty awarded');
+    } else {
+      await addEvent('penalty', teamName, `Penalty awarded to ${teamName}!`);
+    }
   };
 
   const handleCorner = async (team) => {
     const teamName = team === 'home' ? match.homeTeam : match.awayTeam;
-    await addEvent('corner', teamName, `Corner kick for ${teamName}`);
+    // Check if team is Nkoroi FC (whether home or away)
+    const isNkoroiFC = teamName.toLowerCase().includes('nkoroi');
+    
+    // Only show player selection for Nkoroi FC (player taking corner)
+    if (isNkoroiFC && players.length > 0) {
+      showPlayerSelection('corner', team, 'Corner kick');
+    } else {
+      await addEvent('corner', teamName, `Corner kick for ${teamName}`);
+    }
   };
 
   const handleHalftime = async () => {
