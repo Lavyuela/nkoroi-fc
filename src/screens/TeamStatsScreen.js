@@ -40,13 +40,27 @@ const TeamStatsScreen = ({ navigation }) => {
     let wins = 0, draws = 0, losses = 0, goalsScored = 0, goalsConceded = 0;
 
     finishedMatches.forEach(match => {
-      // Assuming Nkoroi FC is always home team
-      goalsScored += match.homeScore;
-      goalsConceded += match.awayScore;
-
-      if (match.homeScore > match.awayScore) wins++;
-      else if (match.homeScore === match.awayScore) draws++;
-      else losses++;
+      // Check if Nkoroi FC is home or away team
+      const isHome = match.homeTeam?.toLowerCase().includes('nkoroi');
+      const isAway = match.awayTeam?.toLowerCase().includes('nkoroi');
+      
+      if (isHome) {
+        // Nkoroi FC is home team
+        goalsScored += match.homeScore || 0;
+        goalsConceded += match.awayScore || 0;
+        
+        if (match.homeScore > match.awayScore) wins++;
+        else if (match.homeScore === match.awayScore) draws++;
+        else losses++;
+      } else if (isAway) {
+        // Nkoroi FC is away team
+        goalsScored += match.awayScore || 0;
+        goalsConceded += match.homeScore || 0;
+        
+        if (match.awayScore > match.homeScore) wins++;
+        else if (match.awayScore === match.homeScore) draws++;
+        else losses++;
+      }
     });
 
     const totalMatches = finishedMatches.length;
@@ -59,7 +73,7 @@ const TeamStatsScreen = ({ navigation }) => {
       losses,
       goalsScored,
       goalsConceded,
-      winRate,
+      winRate: Math.round(winRate),
     });
   };
 

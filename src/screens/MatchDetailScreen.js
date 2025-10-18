@@ -181,6 +181,48 @@ const MatchDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const deleteEvent = async (eventIndex) => {
+    Alert.alert(
+      'Delete Event',
+      'Are you sure you want to delete this event? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const events = Array.isArray(match.events) ? [...match.events] : Object.values(match.events);
+              const eventToDelete = events[eventIndex];
+              
+              // If it's a goal, adjust the score
+              if (eventToDelete.type === 'goal') {
+                const teamName = eventToDelete.team;
+                const isHome = teamName === match.homeTeam;
+                const newHomeScore = isHome ? Math.max(0, match.homeScore - 1) : match.homeScore;
+                const newAwayScore = !isHome ? Math.max(0, match.awayScore - 1) : match.awayScore;
+                
+                await updateMatch(matchId, {
+                  homeScore: newHomeScore,
+                  awayScore: newAwayScore,
+                });
+              }
+              
+              // Remove the event
+              events.splice(eventIndex, 1);
+              await updateMatch(matchId, { events });
+              
+              Alert.alert('Success', 'Event deleted successfully');
+            } catch (error) {
+              console.error('Error deleting event:', error);
+              Alert.alert('Error', 'Failed to delete event');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const shareEventToWhatsApp = async (event) => {
     try {
       // Get event-specific emoji and title
@@ -927,13 +969,27 @@ const MatchDetailScreen = ({ route, navigation }) => {
           <Card style={styles.eventsCard}>
             <Card.Content>
               <Text style={styles.eventsTitle}>Match Events</Text>
-              {(Array.isArray(match.events) ? match.events : Object.values(match.events)).reverse().map((event, index) => (
-                <View key={index} style={styles.eventItem}>
-                  <Text style={styles.eventMinute}>{event.minute}'</Text>
-                  <Text style={styles.eventType}>{getEventIcon(event.type)}</Text>
-                  <Text style={styles.eventDescription}>{event.description}</Text>
-                </View>
-              ))}
+              {(Array.isArray(match.events) ? match.events : Object.values(match.events)).reverse().map((event, index) => {
+                // Calculate actual index in original array (since we reversed)
+                const actualIndex = (Array.isArray(match.events) ? match.events : Object.values(match.events)).length - 1 - index;
+                
+                return (
+                  <View key={index} style={styles.eventItem}>
+                    <Text style={styles.eventMinute}>{event.minute}'</Text>
+                    <Text style={styles.eventType}>{getEventIcon(event.type)}</Text>
+                    <Text style={styles.eventDescription}>{event.description}</Text>
+                    {isAdmin && (
+                      <IconButton
+                        icon="delete"
+                        size={20}
+                        iconColor="#f44336"
+                        onPress={() => deleteEvent(actualIndex)}
+                        style={styles.deleteEventButton}
+                      />
+                    )}
+                  </View>
+                );
+              })}
             </Card.Content>
           </Card>
         )}
@@ -1275,6 +1331,11 @@ const styles = StyleSheet.create({
   eventDescription: {
     fontSize: 14,
     flex: 1,
+    marginRight: 5,
+  },
+  deleteEventButton: {
+    margin: 0,
+    marginLeft: 5,
   },
   minuteCard: {
     marginBottom: 15,
