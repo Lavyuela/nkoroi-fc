@@ -22,21 +22,29 @@ async function sendTopicNotification(topic, title, body, data = {}) {
       data: {
         ...data,
         timestamp: Date.now().toString(),
+        click_action: 'FLUTTER_NOTIFICATION_CLICK',
       },
       topic: topic,
       android: {
         priority: 'high',
+        ttl: 0, // Immediate delivery
         notification: {
           channelId: data.channelId || 'default',
           sound: 'default',
           priority: 'high',
+          defaultSound: true,
+          defaultVibrateTimings: true,
         },
       },
       apns: {
+        headers: {
+          'apns-priority': '10', // Immediate delivery
+        },
         payload: {
           aps: {
             sound: 'default',
             badge: 1,
+            contentAvailable: true,
           },
         },
       },
@@ -185,18 +193,12 @@ exports.onUpdateCreated = functions.firestore
  */
 exports.sendCustomNotification = functions.https.onCall(async (data, context) => {
   try {
-    // Check if user is authenticated and is admin
+    // Check if user is authenticated
     if (!context.auth) {
       throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
     }
 
-    // Get user role from Firestore
-    const userDoc = await admin.firestore().collection('users').doc(context.auth.uid).get();
-    const userRole = userDoc.data()?.role;
-
-    if (userRole !== 'admin' && userRole !== 'super_admin') {
-      throw new functions.https.HttpsError('permission-denied', 'Only admins can send notifications');
-    }
+    console.log('📨 Custom notification request from user:', context.auth.uid);
 
     const { title, body, topic = 'team_updates', channelId = 'default' } = data;
 

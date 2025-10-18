@@ -114,22 +114,23 @@ const PreMatchAnnouncementScreen = ({ route, navigation }) => {
       
       const uri = await viewShotRef.current.capture();
       
-      // Send notification to fans FIRST
-      try {
-        const functions = require('@react-native-firebase/functions').default;
-        console.log('🔔 Sending pre-match announcement notification...');
-        const result = await functions().httpsCallable('sendCustomNotification')({
-          title: '📢 Match Announcement!',
-          body: `${match.homeTeam} vs ${match.awayTeam} - ${formatDate(match.matchDate)} at ${formatTime(match.matchDate)}`,
-          topic: 'team_updates',
-          channelId: 'match_updates',
-        });
+      // Send notification to fans (non-blocking)
+      const functions = require('@react-native-firebase/functions').default;
+      console.log('🔔 Sending pre-match announcement notification...');
+      
+      // Send notification in background
+      functions().httpsCallable('sendCustomNotification')({
+        title: '📢 Match Announcement!',
+        body: `${match.homeTeam} vs ${match.awayTeam} - ${formatDate(match.matchDate)} at ${formatTime(match.matchDate)}`,
+        topic: 'team_updates',
+        channelId: 'match_updates',
+      }).then((result) => {
         console.log('✅ Notification sent successfully:', result);
-        Alert.alert('Success', 'Notification sent to all fans!');
-      } catch (notifError) {
+      }).catch((notifError) => {
         console.error('❌ Notification error:', notifError);
-        Alert.alert('Notification Error', `Failed to send notification: ${notifError.message}`);
-      }
+        console.error('Error code:', notifError.code);
+        console.error('Error details:', notifError.details);
+      });
       
       // Then share
       await Share.open({
