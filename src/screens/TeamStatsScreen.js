@@ -8,7 +8,19 @@ const TeamStatsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    loadStats();
+    // Set up real-time listener for matches
+    const unsubscribe = firestore()
+      .collection('matches')
+      .onSnapshot((snapshot) => {
+        const matches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        calculateStats(matches);
+        console.log('✅ Team stats updated automatically');
+      }, (error) => {
+        console.log('Error loading stats:', error);
+        setStats(getDefaultStats());
+      });
+    
+    return () => unsubscribe();
   }, []);
 
   const loadStats = async () => {

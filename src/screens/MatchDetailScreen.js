@@ -401,6 +401,15 @@ const MatchDetailScreen = ({ route, navigation }) => {
         const teamName = pendingEvent.teamName;
         const description = `🔄 ${playerOut.name} OFF ➡️ ${player.name} ON`;
         await addEvent('substitution', teamName, description, null, player, playerOut);
+        
+        // Update lineup: remove player out, add player in
+        if (match.lineup && match.lineup.length > 0) {
+          const updatedLineup = match.lineup.filter(p => p.id !== playerOut.id);
+          updatedLineup.push(player);
+          await updateMatch(matchId, { lineup: updatedLineup });
+          console.log('✅ Lineup updated after substitution');
+        }
+        
         setSubstitutionStep(null);
         setPlayerOut(null);
         setPendingEvent(null);
@@ -419,6 +428,13 @@ const MatchDetailScreen = ({ route, navigation }) => {
         await addEvent('goal', teamName, `GOAL! ${teamName} scores! ${score}`, null, player);
       } else {
         await addEvent(pendingEvent.eventType, teamName, pendingEvent.description, null, player);
+        
+        // If red card, remove player from lineup
+        if (pendingEvent.eventType === 'red_card' && match.lineup && match.lineup.length > 0) {
+          const updatedLineup = match.lineup.filter(p => p.id !== player.id);
+          await updateMatch(matchId, { lineup: updatedLineup });
+          console.log('✅ Player removed from lineup after red card');
+        }
       }
     }
     setPendingEvent(null);

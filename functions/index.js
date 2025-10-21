@@ -385,14 +385,14 @@ exports.onMatchEventAdded = functions.firestore
       // Format notification based on event type
       switch (newEvent.type) {
         case 'goal':
+          // Skip if no player name (opponent goal already handled by onMatchUpdated)
+          if (!newEvent.playerName) {
+            console.log('⏭️ Goal without player name, already notified by onMatchUpdated');
+            return null;
+          }
           emoji = '⚽';
           title = `🔥 GOAL! ${match.homeTeam} ${match.homeScore} - ${match.awayScore} ${match.awayTeam}`;
-          // Use player name if available
-          if (newEvent.playerName) {
-            body = `${minute}' ${emoji} ${newEvent.playerName} scores!`;
-          } else {
-            body = newEvent.description || `${minute}' ${emoji} Goal scored!`;
-          }
+          body = `${minute}' ${emoji} ${newEvent.playerName} scores!`;
           break;
         case 'yellow_card':
           emoji = '🟨';
