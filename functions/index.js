@@ -465,4 +465,49 @@ exports.onMatchEventAdded = functions.firestore
     }
   });
 
+/**
+ * Trigger: When a user's FCM token is created or updated
+ * Action: Subscribe the token to team_updates topic
+ */
+exports.onUserTokenUpdate = functions.firestore
+  .document('users/{userId}')
+  .onWrite(async (change, context) => {
+    try {
+      const userId = context.params.userId;
+      const after = change.after.exists ? change.after.data() : null;
+      
+      // If document was deleted or no FCM token, skip
+      if (!after || !after.fcmToken) {
+        return null;
+      }
+      
+      const fcmToken = after.fcmToken;
+      const subscribedTopics = after.subscribedToTopics || [];
+      
+      // Check if already subscribed to team_updates
+      if (subscribedTopics.includes('team_updates')) {
+        console.log(`✅ User ${userId} already subscribed to team_updates`);
+        return null;
+      }
+      
+      // Subscribe token to topic
+      console.log(`📢 Subscribing user ${userId} to team_updates topic...`);
+      
+      await admin.messaging().subscribeToTopic([fcmToken], 'team_updates');
+      
+      // Update user document to mark as subscribed
+      await change.after.ref.update({
+        subscribedToTopics: admin.firestore.FieldValue.arrayUnion('team_updates'),
+        lastTopicSubscription: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      
+      console.log(`✅ User ${userId} subscribed to team_updates topic`);
+      
+      return null;
+    } catch (error) {
+      console.error('❌ Error in onUserTokenUpdate:', error);
+      return null;
+    }
+  });
+
 console.log('🚀 Firebase Cloud Functions loaded successfully');
