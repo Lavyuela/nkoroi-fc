@@ -9,11 +9,40 @@ const admin = require('firebase-admin');
 // Initialize Firebase Admin
 admin.initializeApp();
 
+// Track sent notifications to prevent duplicates (in-memory cache)
+const sentNotifications = new Map();
+
+// Clean up old entries every 5 minutes
+setInterval(() => {
+  const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+  for (const [key, timestamp] of sentNotifications.entries()) {
+    if (timestamp < fiveMinutesAgo) {
+      sentNotifications.delete(key);
+    }
+  }
+}, 5 * 60 * 1000);
+
 /**
  * Helper function to send FCM notification to a topic
  */
 async function sendTopicNotification(topic, title, body, data = {}) {
   try {
+    // Create unique key for this notification
+    const notificationKey = `${topic}_${title}_${body}`;
+    const now = Date.now();
+    
+    // Check if we sent this exact notification in the last 10 seconds
+    if (sentNotifications.has(notificationKey)) {
+      const lastSent = sentNotifications.get(notificationKey);
+      if (now - lastSent < 10000) { // 10 seconds
+        console.log('⏭️ Duplicate notification prevented:', title);
+        return null;
+      }
+    }
+    
+    // Record this notification
+    sentNotifications.set(notificationKey, now);
+    
     const message = {
       notification: {
         title: title,
@@ -21,7 +50,7 @@ async function sendTopicNotification(topic, title, body, data = {}) {
       },
       data: {
         ...data,
-        timestamp: Date.now().toString(),
+        timestamp: now.toString(),
         click_action: 'FLUTTER_NOTIFICATION_CLICK',
       },
       topic: topic,
