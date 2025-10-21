@@ -139,13 +139,21 @@ class NotificationService {
     }
     
     this.foregroundUnsubscribe = messaging().onMessage(async remoteMessage => {
-      console.log('Foreground message received:', remoteMessage);
+      console.log('📨 Foreground message received:', remoteMessage);
       
-      await this.displayNotification({
-        title: remoteMessage.notification?.title,
-        body: remoteMessage.notification?.body,
-        data: remoteMessage.data,
-      });
+      // CRITICAL: Only display if we have notification payload
+      // If both notification and data exist, Android may auto-display, causing duplicates
+      // We only manually display when notification payload exists
+      if (remoteMessage.notification) {
+        console.log('✅ Displaying notification manually (foreground)');
+        await this.displayNotification({
+          title: remoteMessage.notification?.title,
+          body: remoteMessage.notification?.body,
+          data: remoteMessage.data,
+        });
+      } else {
+        console.log('⏭️ Skipping manual display - no notification payload (prevents duplicate)');
+      }
     });
     
     return this.foregroundUnsubscribe;
@@ -360,23 +368,30 @@ class NotificationService {
 
 // Setup background handler (must be at top level, outside class)
 messaging().setBackgroundMessageHandler(async remoteMessage => {
-  console.log('Background message received:', remoteMessage);
+  console.log('📬 Background message received:', remoteMessage);
   
-  // Display notification using Notifee
-  await notifee.displayNotification({
-    title: remoteMessage.notification?.title || 'Nkoroi FC',
-    body: remoteMessage.notification?.body || '',
-    android: {
-      channelId: remoteMessage.data?.channelId || 'default',
-      importance: AndroidImportance.HIGH,
-      pressAction: {
-        id: 'default',
+  // CRITICAL: Only display if we have notification payload
+  // Android auto-displays notifications with both notification and data payloads
+  // We only manually display when notification payload exists to prevent duplicates
+  if (remoteMessage.notification) {
+    console.log('✅ Displaying notification manually (background)');
+    await notifee.displayNotification({
+      title: remoteMessage.notification?.title || 'Nkoroi FC',
+      body: remoteMessage.notification?.body || '',
+      android: {
+        channelId: remoteMessage.data?.channelId || 'default',
+        importance: AndroidImportance.HIGH,
+        pressAction: {
+          id: 'default',
+        },
+        smallIcon: 'ic_launcher',
+        color: '#87CEEB',
       },
-      smallIcon: 'ic_launcher',
-      color: '#87CEEB',
-    },
-    data: remoteMessage.data,
-  });
+      data: remoteMessage.data,
+    });
+  } else {
+    console.log('⏭️ Skipping manual display - no notification payload (prevents duplicate)');
+  }
 });
 
 export default new NotificationService();

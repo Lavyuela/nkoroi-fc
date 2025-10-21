@@ -8,40 +8,41 @@ import auth from '@react-native-firebase/auth';
 
 export default function App() {
   useEffect(() => {
-    // Initialize Notification Service when user logs in
-    const unsubscribeAuth = auth().onAuthStateChanged(async (user) => {
-      if (user) {
-        console.log('🚀 User logged in, initializing notifications for:', user.uid);
-        
-        try {
-          const success = await NotificationService.initialize(user.uid);
-          if (success) {
-            console.log('✅ Notification Service initialized with FCM token saved');
-          }
-        } catch (error) {
-          console.error('❌ Notification initialization error:', error);
+    // Initialize Notification Service ONCE on app start
+    let isInitialized = false;
+    
+    async function initializeNotifications() {
+      if (isInitialized) {
+        console.log('⏭️ Notification Service already initialized, skipping');
+        return;
+      }
+      
+      console.log('🚀 Initializing Notification Service...');
+      
+      const currentUser = auth().currentUser;
+      try {
+        const success = await NotificationService.initialize(currentUser?.uid);
+        if (success) {
+          isInitialized = true;
+          console.log('✅ Notification Service initialized successfully');
         }
+      } catch (error) {
+        console.error('❌ Notification initialization error:', error);
+      }
+    }
+    
+    // Initialize immediately
+    initializeNotifications();
+    
+    // Re-initialize when user logs in (if not already initialized)
+    const unsubscribeAuth = auth().onAuthStateChanged(async (user) => {
+      if (user && !isInitialized) {
+        console.log('🚀 User logged in, initializing notifications for:', user.uid);
+        await initializeNotifications();
       }
     });
     
     return () => unsubscribeAuth();
-  }, []);
-
-  useEffect(() => {
-    // Initialize Notification Service on app start
-    async function initializeNotifications() {
-      console.log('🚀 Initializing Notification Service on app start...');
-      
-      const currentUser = auth().currentUser;
-      const success = await NotificationService.initialize(currentUser?.uid);
-      if (success) {
-        console.log('✅ Notification Service initialized successfully');
-      } else {
-        console.warn('⚠️ Notification Service initialization failed');
-      }
-    }
-    
-    initializeNotifications();
   }, []);
 
   return (
