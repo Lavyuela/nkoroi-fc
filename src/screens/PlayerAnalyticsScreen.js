@@ -4,14 +4,40 @@ import { Text, Card, Appbar, Chip, ProgressBar, Divider } from 'react-native-pap
 import firestore from '@react-native-firebase/firestore';
 
 const PlayerAnalyticsScreen = ({ route, navigation }) => {
-  const { playerId } = route.params;
+  const playerId = route.params?.playerId;
   const [player, setPlayer] = useState(null);
+  const [players, setPlayers] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showPlayerList, setShowPlayerList] = useState(!playerId);
 
   useEffect(() => {
-    loadPlayerData();
+    if (playerId) {
+      loadPlayerData();
+    } else {
+      loadAllPlayers();
+    }
   }, [playerId]);
+
+  const loadAllPlayers = async () => {
+    try {
+      const playersSnapshot = await firestore()
+        .collection('players')
+        .orderBy('name')
+        .get();
+      
+      const playersList = playersSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      
+      setPlayers(playersList);
+    } catch (error) {
+      console.error('Error loading players:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadPlayerData = async () => {
     try {
@@ -138,6 +164,51 @@ const PlayerAnalyticsScreen = ({ route, navigation }) => {
         <View style={styles.loadingContainer}>
           <Text>Loading player analytics...</Text>
         </View>
+      </View>
+    );
+  }
+
+  // Show player selection if no playerId provided
+  if (showPlayerList && !playerId) {
+    return (
+      <View style={styles.container}>
+        <Appbar.Header style={styles.header}>
+          <Appbar.BackAction onPress={() => navigation.goBack()} color="#fff" />
+          <Appbar.Content title="Select Player" titleStyle={styles.headerTitle} />
+        </Appbar.Header>
+        <ScrollView style={styles.content}>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text style={styles.sectionTitle}>👥 Choose a Player</Text>
+              {players.length === 0 ? (
+                <Text style={styles.emptyText}>No players found. Add players first.</Text>
+              ) : (
+                players.map((p, index) => (
+                  <View key={p.id}>
+                    <Card 
+                      style={styles.playerCard}
+                      onPress={() => {
+                        setShowPlayerList(false);
+                        navigation.push('PlayerAnalytics', { playerId: p.id });
+                      }}
+                    >
+                      <Card.Content style={styles.playerCardContent}>
+                        <View>
+                          <Text style={styles.playerName}>{p.name}</Text>
+                          <Text style={styles.playerPosition}>
+                            {p.position || 'Player'} • #{p.jerseyNumber || '?'}
+                          </Text>
+                        </View>
+                        <Text style={styles.chevronText}>›</Text>
+                      </Card.Content>
+                    </Card>
+                    {index < players.length - 1 && <View style={{ height: 8 }} />}
+                  </View>
+                ))
+              )}
+            </Card.Content>
+          </Card>
+        </ScrollView>
       </View>
     );
   }
@@ -351,6 +422,36 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     color: '#1a472a',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 16,
+    paddingVertical: 30,
+  },
+  playerCard: {
+    elevation: 2,
+    backgroundColor: '#fff',
+  },
+  playerCardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  playerName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a472a',
+  },
+  playerPosition: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  chevronText: {
+    fontSize: 32,
+    color: '#ccc',
+    fontWeight: '300',
   },
   ratingContainer: {
     flexDirection: 'row',
