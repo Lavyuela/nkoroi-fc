@@ -4,8 +4,9 @@ import { Text, Card, List, Divider, Appbar, TextInput, Button, Switch, Chip } fr
 import { useAuth } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const SettingsScreen = ({ navigation }) => {
+const SettingsScreen = ({ navigation, route }) => {
   const { isAdmin } = useAuth();
+  const { isDarkMode, setIsDarkMode } = route.params || {};
   const [adminEmails, setAdminEmails] = useState([]);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -200,9 +201,29 @@ const SettingsScreen = ({ navigation }) => {
           <Card.Content>
             <Text style={styles.sectionTitle}>⚙️ App Settings</Text>
             
+            {setIsDarkMode && (
+              <>
+                <List.Item
+                  title="Dark Mode"
+                  description={isDarkMode ? "Dark theme enabled" : "Light theme enabled"}
+                  left={props => <List.Icon {...props} icon={isDarkMode ? "weather-night" : "weather-sunny"} />}
+                  right={() => (
+                    <Switch
+                      value={isDarkMode}
+                      onValueChange={async (value) => {
+                        setIsDarkMode(value);
+                        await AsyncStorage.setItem('theme_preference', value ? 'dark' : 'light');
+                      }}
+                    />
+                  )}
+                />
+                <Divider />
+              </>
+            )}
+            
             <List.Item
               title="App Version"
-              description="1.0.0"
+              description="1.0.1"
               left={props => <List.Icon {...props} icon="information" />}
             />
             <Divider />
