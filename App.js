@@ -1,39 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
-import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
-import { useColorScheme } from 'react-native';
+import React, { useEffect } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import NotificationService from './src/services/notificationService';
 import auth from '@react-native-firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
-  const systemColorScheme = useColorScheme();
-  const [isDarkMode, setIsDarkMode] = useState(systemColorScheme === 'dark');
-
-  // Load theme preference
-  useEffect(() => {
-    loadThemePreference();
-  }, []);
-
-  const loadThemePreference = async () => {
-    try {
-      const savedTheme = await AsyncStorage.getItem('theme_preference');
-      if (savedTheme) {
-        setIsDarkMode(savedTheme === 'dark');
-      }
-    } catch (error) {
-      console.error('Error loading theme:', error);
-    }
-  };
-
-  const theme = isDarkMode
-    ? { ...MD3DarkTheme, colors: { ...MD3DarkTheme.colors, primary: '#87CEEB' } }
-    : { ...MD3LightTheme, colors: { ...MD3LightTheme.colors, primary: '#87CEEB' } };
-
-  const navigationTheme = isDarkMode ? DarkTheme : DefaultTheme;
-
   useEffect(() => {
     // Initialize Notification Service ONCE on app start
     let isInitialized = false;
@@ -73,10 +46,10 @@ export default function App() {
   }, []);
 
   return (
-    <PaperProvider theme={theme}>
+    <PaperProvider>
       <AuthProvider>
-        <NavigationContainer theme={navigationTheme}>
-          <AppNavigator isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+        <NavigationContainer>
+          <AppNavigator />
         </NavigationContainer>
       </AuthProvider>
     </PaperProvider>
