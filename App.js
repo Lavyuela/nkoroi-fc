@@ -4,10 +4,16 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import NotificationService from './src/services/notificationService';
+import UpdateService from './src/services/updateService';
 import auth from '@react-native-firebase/auth';
 
 export default function App() {
   useEffect(() => {
+    // Check for app updates on startup
+    setTimeout(() => {
+      UpdateService.checkForUpdates(true);
+    }, 3000); // Wait 3 seconds after app starts
+
     // Initialize Notification Service ONCE on app start
     let isInitialized = false;
     

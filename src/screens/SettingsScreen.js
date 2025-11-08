@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Card, List, Divider, Appbar, TextInput, Button, Switch, Chip } from 'react-native-paper';
 import { useAuth } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import UpdateService from '../services/updateService';
 
 const SettingsScreen = ({ navigation }) => {
   const { isAdmin } = useAuth();
@@ -202,10 +203,19 @@ const SettingsScreen = ({ navigation }) => {
             
             <List.Item
               title="App Version"
-              description="1.0.1"
+              description={`v${UpdateService.getCurrentVersion()}`}
               left={props => <List.Icon {...props} icon="information" />}
             />
             <Divider />
+            
+            <List.Item
+              title="Check for Updates"
+              description="Tap to check for new version"
+              left={props => <List.Icon {...props} icon="update" />}
+              onPress={() => UpdateService.checkForUpdates(false)}
+            />
+            <Divider />
+            
             <List.Item
               title="Storage Mode"
               description="Offline Mode (Local Storage)"
