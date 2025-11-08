@@ -54,9 +54,14 @@ const MatchResultGraphicScreen = ({ route, navigation }) => {
     const homeScore = match.homeScore || 0;
     const awayScore = match.awayScore || 0;
     
-    if (homeScore > awayScore) {
+    // Determine which team is Nkoroi FC
+    const isNkoroiHome = match.homeTeam?.toLowerCase().includes('nkoroi');
+    const nkoroiScore = isNkoroiHome ? homeScore : awayScore;
+    const opponentScore = isNkoroiHome ? awayScore : homeScore;
+    
+    if (nkoroiScore > opponentScore) {
       return '🏆 VICTORY!';
-    } else if (homeScore < awayScore) {
+    } else if (nkoroiScore < opponentScore) {
       return '💪 Tough Loss';
     } else {
       return '🤝 Draw';
