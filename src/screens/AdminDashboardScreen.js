@@ -265,6 +265,22 @@ const AdminDashboardScreen = ({ navigation }) => {
                   </View>
                   <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
                 </TouchableOpacity>
+
+                <Divider style={styles.divider} />
+
+                <TouchableOpacity 
+                  style={styles.toolItem}
+                  onPress={() => navigation.navigate('ActiveUsers')}
+                >
+                  <Avatar.Icon size={40} icon="account-eye" style={[styles.toolIcon, { backgroundColor: '#9c27b0' }]} />
+                  <View style={styles.toolText}>
+                    <Text style={styles.toolTitle}>👥 Active Users</Text>
+                    <Text style={styles.toolDescription}>
+                      View all users, activity status, and engagement
+                    </Text>
+                  </View>
+                  <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
+                </TouchableOpacity>
               </>
             )}
 
