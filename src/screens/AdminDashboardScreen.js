@@ -225,7 +225,24 @@ const AdminDashboardScreen = ({ navigation }) => {
               <View style={styles.toolText}>
                 <Text style={styles.toolTitle}>Test Notifications</Text>
                 <Text style={styles.toolDescription}>
-                  Test push notification system
+                  Send test notifications to verify delivery
+                </Text>
+              </View>
+              <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />
+            </TouchableOpacity>
+
+            <Divider style={styles.divider} />
+
+            {/* Player Analytics - All Admins */}
+            <TouchableOpacity 
+              style={styles.toolItem}
+              onPress={() => navigation.navigate('PlayerAnalytics')}
+            >
+              <Avatar.Icon size={40} icon="chart-line" style={[styles.toolIcon, { backgroundColor: '#00bcd4' }]} />
+              <View style={styles.toolText}>
+                <Text style={styles.toolTitle}>📊 Player Analytics</Text>
+                <Text style={styles.toolDescription}>
+                  View player performance stats and ratings
                 </Text>
               </View>
               <Avatar.Icon size={24} icon="chevron-right" style={styles.chevron} />

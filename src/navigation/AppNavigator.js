@@ -28,6 +28,7 @@ import PreMatchAnnouncementScreen from '../screens/PreMatchAnnouncementScreen';
 import FanReactionScreen from '../screens/FanReactionScreen';
 import NotificationTestScreen from '../screens/NotificationTestScreen';
 import ActiveUsersScreen from '../screens/ActiveUsersScreen';
+import PlayerAnalyticsScreen from '../screens/PlayerAnalyticsScreen';
 
 const Stack = createStackNavigator();
 
@@ -77,6 +78,7 @@ const AppNavigator = () => {
           <Stack.Screen name="PreMatchAnnouncement" component={PreMatchAnnouncementScreen} />
           <Stack.Screen name="FanReaction" component={FanReactionScreen} />
           <Stack.Screen name="ActiveUsers" component={ActiveUsersScreen} />
+          <Stack.Screen name="PlayerAnalytics" component={PlayerAnalyticsScreen} />
         </>
       )}
     </Stack.Navigator>
