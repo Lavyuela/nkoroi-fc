@@ -2,7 +2,7 @@ import firestore from '@react-native-firebase/firestore';
 import { Alert, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const CURRENT_VERSION = '1.0.1';
+const CURRENT_VERSION = '1.0.2';
 const VERSION_CHECK_KEY = 'last_version_check';
 const DISMISSED_VERSION_KEY = 'dismissed_update_version';
 
